@@ -6,7 +6,9 @@ import Routes from "../constants/routes";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 
+
 const Stack = createNativeStackNavigator();
+
 
 export default function AuthNavigator() {
 
@@ -15,7 +17,7 @@ export default function AuthNavigator() {
         <Stack.Navigator
             initialRouteName={Routes.LOGIN}
             screenOptions={{
-                headerShown: false,
+                headerShown:false,
             }}
         >
 
@@ -24,10 +26,12 @@ export default function AuthNavigator() {
                 component={LoginScreen}
             />
 
+
             <Stack.Screen
                 name={Routes.REGISTER}
                 component={RegisterScreen}
             />
+
 
         </Stack.Navigator>
 

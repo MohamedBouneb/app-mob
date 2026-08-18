@@ -1,43 +1,51 @@
-import { View, Text } from "react-native";
-
-import ScreenContainer from "../../components/common/ScreenContainer";
-import CustomInput from "../../components/common/CustomInput";
+import { Text, View } from "react-native";
 import PrimaryButton from "../../components/common/PrimaryButton";
+import { useAuth } from "../../context/AuthContext";
+import StorageService from "../../services/storageService";
 
-export default function LoginScreen(){
+export default function LoginScreen() {
 
-return(
+  const { login, user } = useAuth();
 
-<ScreenContainer>
+  const handleFakeLogin = async () => {
 
-<Text>
+    // 1. Simuler la connexion
+    login(
+      {
+        id: 1,
+        name: "Mohamed",
+        email: "mohamed@gmail.com",
+        role: "ADMIN",
+      },
+      "fake-jwt-token"
+    );
 
-Connexion
+    // 2. Sauvegarder le token
+    await StorageService.saveToken("fake-jwt-token");
 
-</Text>
+    // 3. Relire le token pour vérifier
+    const token = await StorageService.getToken();
 
-<CustomInput
+    console.log("Token enregistré :", token);
 
-placeholder="Adresse email"
+  };
 
-/>
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <Text>
+        {user ? `Bienvenue ${user.name}` : "Aucun utilisateur connecté"}
+      </Text>
 
-<CustomInput
-
-placeholder="Mot de passe"
-
-secureTextEntry
-
-/>
-
-<PrimaryButton
-
-title="Se connecter"
-
-/>
-
-</ScreenContainer>
-
-)
-
+      <PrimaryButton
+        title="Tester AsyncStorage"
+        onPress={handleFakeLogin}
+      />
+    </View>
+  );
 }
