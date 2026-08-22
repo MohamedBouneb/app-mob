@@ -15,6 +15,8 @@ import AuthNavigator from "./AuthNavigator";
 
 import SplashScreen from "../screens/splash/SplashScreen";
 
+import WelcomeScreen from "../screens/welcome/WelcomeScreen";
+
 
 export default function AppNavigator() {
 
@@ -22,8 +24,10 @@ export default function AppNavigator() {
 
     const [splashFinished, setSplashFinished] = useState(false);
 
+    const [welcomeFinished, setWelcomeFinished] = useState(false);
 
-    // 1️⃣ Afficher le SplashScreen au démarrage
+
+    // 1️⃣ Splash
     if (!splashFinished) {
 
         return (
@@ -37,7 +41,7 @@ export default function AppNavigator() {
     }
 
 
-    // 2️⃣ Vérifier la session utilisateur
+    // 2️⃣ Vérification session
     if (loading) {
 
         return (
@@ -50,9 +54,7 @@ export default function AppNavigator() {
                 }}
             >
 
-                <ActivityIndicator
-                    size="large"
-                />
+                <ActivityIndicator size="large" />
 
             </View>
 
@@ -61,30 +63,38 @@ export default function AppNavigator() {
     }
 
 
-    // 3️⃣ Afficher la navigation
+    // 3️⃣ Écran de choix
+    if (!welcomeFinished) {
+
+        return (
+
+            <WelcomeScreen
+
+                onLogin={() => {
+
+                    setWelcomeFinished(true);
+
+                }}
+
+                onRegister={() => {
+
+                    setWelcomeFinished(true);
+
+                }}
+
+            />
+
+        );
+
+    }
+
+
+    // 4️⃣ Navigation
     return (
 
         <NavigationContainer>
 
-            {
-                user
-
-                ?
-
-                (
-                    // Pour le moment
-                    // nous n'avons pas encore créé
-                    // AdminNavigator / TeacherNavigator / ParentNavigator
-
-                    <AuthNavigator />
-                )
-
-                :
-
-                (
-                    <AuthNavigator />
-                )
-            }
+            <AuthNavigator />
 
         </NavigationContainer>
 

@@ -1,6 +1,7 @@
 import React, {
     useState,
-    useRef
+    useRef,
+    useEffect
 } from "react";
 
 import {
@@ -9,6 +10,7 @@ import {
     Image,
     StyleSheet,
     PanResponder,
+    TouchableOpacity
 } from "react-native";
 
 
@@ -54,30 +56,40 @@ export default function SplashScreen({ onFinish }) {
     const currentSlideRef = useRef(0);
 
 
+    /*
+    ========================================
+    PASSER AU SLIDE SUIVANT
+    ========================================
+    */
+
     const goToNextSlide = () => {
 
         if (currentSlideRef.current < slides.length - 1) {
 
-            const nextSlide = currentSlideRef.current + 1;
+            const nextSlide =
+                currentSlideRef.current + 1;
 
             currentSlideRef.current = nextSlide;
 
             setCurrentSlide(nextSlide);
-
-        } else {
-
-            onFinish();
 
         }
 
     };
 
 
+    /*
+    ========================================
+    REVENIR AU SLIDE PRECEDENT
+    ========================================
+    */
+
     const goToPreviousSlide = () => {
 
         if (currentSlideRef.current > 0) {
 
-            const previousSlide = currentSlideRef.current - 1;
+            const previousSlide =
+                currentSlideRef.current - 1;
 
             currentSlideRef.current = previousSlide;
 
@@ -88,44 +100,177 @@ export default function SplashScreen({ onFinish }) {
     };
 
 
+    /*
+    ========================================
+    AUTO SLIDE
+    ========================================
+    
+    Les 3 premiers slides durent 2 secondes.
+
+    Le dernier écran n'est PAS automatique.
+    */
+
+    useEffect(() => {
+
+        if (currentSlide >= slides.length) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+
+            goToNextSlide();
+
+        }, 2000);
+
+
+        return () => clearTimeout(timer);
+
+    }, [currentSlide]);
+
+
+    /*
+    ========================================
+    SWIPE
+    ========================================
+    */
+
     const panResponder = useRef(
 
         PanResponder.create({
 
-            onMoveShouldSetPanResponder: (_, gestureState) => {
+            onMoveShouldSetPanResponder:
+                (_, gestureState) => {
 
-                return Math.abs(gestureState.dx) > 20;
+                    return Math.abs(gestureState.dx) > 20;
 
-            },
-
-
-            onPanResponderRelease: (_, gestureState) => {
-
-                const SWIPE_THRESHOLD = 50;
+                },
 
 
-                if (gestureState.dx < -SWIPE_THRESHOLD) {
+            onPanResponderRelease:
+                (_, gestureState) => {
 
-                    goToNextSlide();
-
-                }
+                    const SWIPE_THRESHOLD = 50;
 
 
-                else if (gestureState.dx > SWIPE_THRESHOLD) {
+                    // Swipe gauche
+                    if (
+                        gestureState.dx <
+                        -SWIPE_THRESHOLD
+                    ) {
 
-                    goToPreviousSlide();
+                        goToNextSlide();
 
-                }
+                    }
 
-            },
+
+                    // Swipe droit
+                    else if (
+                        gestureState.dx >
+                        SWIPE_THRESHOLD
+                    ) {
+
+                        goToPreviousSlide();
+
+                    }
+
+                },
 
         })
 
     ).current;
 
 
+    /*
+    ========================================
+    SI ON ARRIVE AU DERNIER ÉCRAN
+    ========================================
+    */
+
+    if (currentSlide >= slides.length) {
+
+        return (
+
+            <View style={styles.container}>
+
+                {/* IMAGE */}
+
+                <Image
+                    source={require(
+                        "../../assets/images/splash/welcome-child.png"
+                    )}
+                    style={styles.welcomeImage}
+                    resizeMode="contain"
+                />
+
+
+                {/* BOUTON LOGIN */}
+
+                <TouchableOpacity
+                    style={styles.choiceButton}
+                    onPress={() => onFinish("login")}
+                    activeOpacity={0.8}
+                >
+
+                    <Text style={styles.choiceText}>
+                        تسجيل الدخول
+                    </Text>
+
+                </TouchableOpacity>
+
+
+                {/* BOUTON REGISTER */}
+
+                <TouchableOpacity
+                    style={styles.choiceButton}
+                    onPress={() => onFinish("register")}
+                    activeOpacity={0.8}
+                >
+
+                    <Text style={styles.choiceText}>
+                        إنشاء حساب
+                    </Text>
+
+                </TouchableOpacity>
+
+
+                {/* DESCRIPTION */}
+
+                <View style={styles.descriptionBox}>
+
+                    <Text style={styles.description}>
+
+                        الروضة هي محطة شحن صغيرة
+                        {"\n"}
+                        للأرواح الصغيرة قبل انطلاقها في الحياة
+
+                    </Text>
+
+
+                    <Image
+                        source={require(
+                            "../../assets/images/splash/child-3.png"
+                        )}
+                        style={styles.smallCharacter}
+                        resizeMode="contain"
+                    />
+
+                </View>
+
+            </View>
+
+        );
+
+    }
+
+
     const slide = slides[currentSlide];
 
+
+    /*
+    ========================================
+    SLIDES 1, 2, 3
+    ========================================
+    */
 
     return (
 
@@ -134,7 +279,8 @@ export default function SplashScreen({ onFinish }) {
             {...panResponder.panHandlers}
         >
 
-            {/* Logo */}
+            {/* LOGO */}
+
             <Image
                 source={require(
                     "../../assets/images/logo-jardin.png"
@@ -144,21 +290,26 @@ export default function SplashScreen({ onFinish }) {
             />
 
 
-            {/* Titre */}
+            {/* TITRE */}
+
             <Text style={styles.title}>
+
                 {slide.title}
+
             </Text>
 
 
-            {/* Description */}
+            {/* DESCRIPTION */}
+
             <View style={styles.descriptionBox}>
 
                 <Text style={styles.description}>
+
                     {slide.description}
+
                 </Text>
 
 
-                {/* Personnage */}
                 <Image
                     source={slide.character}
                     style={styles.character}
@@ -168,7 +319,8 @@ export default function SplashScreen({ onFinish }) {
             </View>
 
 
-            {/* Indicateurs */}
+            {/* DOTS */}
+
             <View style={styles.dotsContainer}>
 
                 {slides.map((_, index) => (
@@ -180,7 +332,7 @@ export default function SplashScreen({ onFinish }) {
 
                             index === currentSlide
                                 ? styles.activeDot
-                                : styles.inactiveDot,
+                                : styles.inactiveDot
                         ]}
                     />
 
@@ -193,85 +345,247 @@ export default function SplashScreen({ onFinish }) {
     );
 
 }
+
+
+/*
+========================================
+STYLES
+========================================
+*/
+
 const styles = StyleSheet.create({
 
     container: {
+
         flex: 1,
+
         backgroundColor: "#F52F46",
+
         alignItems: "center",
+
         paddingHorizontal: 20,
-        paddingTop: 70,
+
+        paddingTop: 50,
+
     },
+
+
+    /*
+    LOGO
+    */
 
     logo: {
+
         width: 220,
+
         height: 220,
-        marginTop: 80,
+
+        marginTop: 70,
+
     },
+
+
+    /*
+    TITRE
+    */
 
     title: {
+
         color: "#FFFFFF",
+
         fontSize: 28,
+
         fontWeight: "400",
-        marginTop: 35,
+
+        marginTop: 30,
+
         textAlign: "center",
+
         writingDirection: "rtl",
+
     },
+
+
+    /*
+    IMAGE DU DERNIER SLIDE
+    */
+
+    welcomeImage: {
+
+        width: 290,
+
+        height: 270,
+
+        marginTop: 45,
+
+    },
+
+
+    /*
+    BOUTONS LOGIN / REGISTER
+    */
+
+    choiceButton: {
+
+        width: "82%",
+
+        height: 50,
+
+        backgroundColor: "#FFA936",
+
+        borderRadius: 30,
+
+        justifyContent: "center",
+
+        alignItems: "center",
+
+        marginTop: 18,
+
+    },
+
+
+    choiceText: {
+
+        color: "#FFFFFF",
+
+        fontSize: 18,
+
+        fontWeight: "bold",
+
+        writingDirection: "rtl",
+
+    },
+
+
+    /*
+    DESCRIPTION
+    */
 
     descriptionBox: {
+
         width: "92%",
-        minHeight: 75,
+
+        minHeight: 70,
+
         backgroundColor: "#FFFFFF",
+
         borderRadius: 18,
+
         marginTop: "auto",
-        marginBottom: 30,
+
+        marginBottom: 25,
+
         paddingHorizontal: 20,
+
         paddingVertical: 15,
+
         justifyContent: "center",
+
         alignItems: "center",
+
         position: "relative",
+
     },
+
 
     description: {
+
         color: "#E85A24",
+
         fontSize: 14,
-        lineHeight: 21,
+
+        lineHeight: 20,
+
         textAlign: "center",
+
         writingDirection: "rtl",
+
         paddingHorizontal: 10,
+
     },
+
+
+    /*
+    PERSONNAGE DES SLIDES 1-3
+    */
 
     character: {
+
         position: "absolute",
+
         right: -5,
+
         bottom: -10,
+
         width: 80,
+
         height: 90,
+
     },
+
+
+    /*
+    PERSONNAGE DU DERNIER SLIDE
+    */
+
+    smallCharacter: {
+
+        position: "absolute",
+
+        right: -5,
+
+        bottom: -10,
+
+        width: 85,
+
+        height: 95,
+
+    },
+
+
+    /*
+    DOTS
+    */
 
     dotsContainer: {
+
         flexDirection: "row",
+
         justifyContent: "center",
+
         alignItems: "center",
+
         gap: 5,
+
         marginBottom: 20,
+
     },
+
 
     dot: {
-        width: 10,
+
         height: 7,
+
         borderRadius: 10,
-        backgroundColor: "#FFFFFF",
+
     },
+
 
     activeDot: {
+
         width: 24,
+
         backgroundColor: "#FFD83D",
+
     },
 
+
     inactiveDot: {
+
         width: 10,
+
         backgroundColor: "#FFFFFF",
+
     },
 
 });
