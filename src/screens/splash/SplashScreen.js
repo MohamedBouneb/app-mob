@@ -64,7 +64,8 @@ export default function SplashScreen({ onFinish }) {
 
     const goToNextSlide = () => {
 
-        if (currentSlideRef.current < slides.length - 1) {
+        // Autorise à aller jusqu'à slides.length (l'écran final)
+        if (currentSlideRef.current < slides.length) {
 
             const nextSlide =
                 currentSlideRef.current + 1;
@@ -104,15 +105,18 @@ export default function SplashScreen({ onFinish }) {
     ========================================
     AUTO SLIDE
     ========================================
-    
-    Les 3 premiers slides durent 2 secondes.
 
-    Le dernier écran n'est PAS automatique.
+    Les 3 premiers slides défilent automatiquement (2s).
+
+    Le dernier slide (index 2) NE défile PAS automatiquement
+    vers l'écran final : il faut un swipe (ou un tap, voir plus bas).
     */
 
     useEffect(() => {
 
-        if (currentSlide >= slides.length) {
+        // On arrête le timer dès qu'on atteint le DERNIER slide
+        // (slides.length - 1), pas seulement l'écran final.
+        if (currentSlide >= slides.length - 1) {
             return;
         }
 
@@ -154,7 +158,7 @@ export default function SplashScreen({ onFinish }) {
 
                     // Swipe gauche
                     if (
-                        gestureState.dx <
+                        gestureState.dx 
                         -SWIPE_THRESHOLD
                     ) {
 
@@ -178,6 +182,24 @@ export default function SplashScreen({ onFinish }) {
         })
 
     ).current;
+
+
+    /*
+    ========================================
+    TAP DE SECOURS (utile en test, notamment sur web
+    où le swipe à la souris est peu fiable)
+    ========================================
+    */
+
+    const handleTapOnLastSlide = () => {
+
+        if (currentSlide === slides.length - 1) {
+
+            goToNextSlide();
+
+        }
+
+    };
 
 
     /*
@@ -274,8 +296,10 @@ export default function SplashScreen({ onFinish }) {
 
     return (
 
-        <View
+        <TouchableOpacity
+            activeOpacity={1}
             style={styles.container}
+            onPress={handleTapOnLastSlide}
             {...panResponder.panHandlers}
         >
 
@@ -340,7 +364,7 @@ export default function SplashScreen({ onFinish }) {
 
             </View>
 
-        </View>
+        </TouchableOpacity>
 
     );
 
