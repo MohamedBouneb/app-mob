@@ -114,23 +114,23 @@ export default function SplashScreen({ onFinish }) {
 
     useEffect(() => {
 
-        // On arrête le timer dès qu'on atteint le DERNIER slide
-        // (slides.length - 1), pas seulement l'écran final.
-        if (currentSlide >= slides.length - 1) {
-            return;
+    const timer = setTimeout(() => {
+
+        if (currentSlide < slides.length - 1) {
+
+            setCurrentSlide(currentSlide + 1);
+
+        } else {
+
+            onFinish();
+
         }
 
-        const timer = setTimeout(() => {
+    }, 2000);
 
-            goToNextSlide();
+    return () => clearTimeout(timer);
 
-        }, 2000);
-
-
-        return () => clearTimeout(timer);
-
-    }, [currentSlide]);
-
+}, [currentSlide]);
 
     /*
     ========================================

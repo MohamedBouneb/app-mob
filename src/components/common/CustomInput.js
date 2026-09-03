@@ -1,40 +1,69 @@
-import { TextInput, StyleSheet } from "react-native";
-import Theme from "../../styles/theme";
+import React from "react";
 
-export default function CustomInput(props){
+import {
+    View,
+    Text,
+    TextInput,
+    StyleSheet
+} from "react-native";
 
-return(
 
-<TextInput
+export default function CustomInput({
+    label,
+    placeholder,
+    value,
+    onChangeText,
+    secureTextEntry = false,
+    keyboardType = "default",
+}) {
 
-style={styles.input}
+    return (
 
-placeholderTextColor={Theme.colors.placeholder}
+        <View style={styles.container}>
 
-{...props}
+            {label && (
+                <Text style={styles.label}>
+                    {label}
+                </Text>
+            )}
 
-/>
+            <TextInput
+                style={styles.input}
+                placeholder={placeholder}
+                placeholderTextColor="#888"
+                value={value}
+                onChangeText={onChangeText}
+                secureTextEntry={secureTextEntry}
+                keyboardType={keyboardType}
+                autoCapitalize="none"
+            />
 
-)
+        </View>
 
+    );
 }
 
-const styles=StyleSheet.create({
 
-input:{
+const styles = StyleSheet.create({
 
-borderWidth:1,
+    container: {
+        width: "100%",
+        marginBottom: 12,
+    },
 
-borderColor:Theme.colors.border,
+    label: {
+        fontSize: 13,
+        marginBottom: 5,
+        color: "#555",
+    },
 
-borderRadius:12,
+    input: {
+        height: 52,
+        backgroundColor: "#FFF0C7",
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        fontSize: 14,
+        color: "#333",
+    },
 
-padding:14,
-
-marginTop:15,
-
-fontSize:16,
-
-}
-
-})
+});
