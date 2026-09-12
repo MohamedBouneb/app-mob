@@ -1,11 +1,20 @@
-const Routes ={
+const Routes = {
 
-    LOGIN:"Login",
-    REGISTER:"Register",
-    ADMIN:"Admin",
-    TEACHER:"Teacher",
-    PARENT:"Parent",
-    Home:"Home",
+    LOGIN: "Login",
+
+    REGISTER: "Register",
+
+    FORGOT_PASSWORD: "ForgotPassword",
+
+    VERIFY_CODE: "VerifyCode",
+
+    ADMIN: "Admin",
+
+    TEACHER: "Teacher",
+
+    PARENT: "Parent",
+
+    Home: "Home",
 
 };
 

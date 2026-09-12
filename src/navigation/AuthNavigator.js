@@ -8,6 +8,8 @@ import Routes from "../constants/routes";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
+import FargotPasswordScreen from "../screens/auth/FargotPasswordScreen";
+import VerifyCodeScreen from "../screens/auth/VerifyCodeScreen";
 
 
 const Stack = createNativeStackNavigator();
@@ -16,6 +18,12 @@ const Stack = createNativeStackNavigator();
 export default function AuthNavigator({
     initialRouteName
 }) {
+
+    console.log(
+        "AuthNavigator initial route:",
+        initialRouteName
+    );
+
 
     return (
 
@@ -41,8 +49,17 @@ export default function AuthNavigator({
                 component={RegisterScreen}
             />
 
+            <Stack.Screen
+                name={Routes.FORGOT_PASSWORD}
+                component={FargotPasswordScreen}
+            />
+
+            <Stack.Screen
+                name={Routes.VERIFY_CODE}
+                component={VerifyCodeScreen}
+            />
+
         </Stack.Navigator>
 
     );
-
 }

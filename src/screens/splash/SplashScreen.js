@@ -1,7 +1,7 @@
 import React, {
-    useState,
+    useEffect,
     useRef,
-    useEffect
+    useState
 } from "react";
 
 import {
@@ -10,7 +10,6 @@ import {
     Image,
     StyleSheet,
     PanResponder,
-    TouchableOpacity
 } from "react-native";
 
 
@@ -56,16 +55,66 @@ export default function SplashScreen({ onFinish }) {
     const currentSlideRef = useRef(0);
 
 
-    /*
-    ========================================
-    PASSER AU SLIDE SUIVANT
-    ========================================
-    */
+    // ==========================================
+    // CHANGER DE SLIDE AUTOMATIQUEMENT
+    // ==========================================
+
+    useEffect(() => {
+
+        console.log(
+            "📱 Slide actuel:",
+            currentSlide
+        );
+
+
+        const timer = setTimeout(() => {
+
+            // Il reste des slides
+            if (currentSlide < slides.length - 1) {
+
+                const nextSlide = currentSlide + 1;
+
+                console.log(
+                    "➡️ Passage au slide:",
+                    nextSlide
+                );
+
+                currentSlideRef.current = nextSlide;
+
+                setCurrentSlide(nextSlide);
+
+            }
+
+            // Dernier slide
+            else {
+
+                console.log(
+                    "✅ Dernier slide terminé"
+                );
+
+                console.log(
+                    "➡️ Passage vers WelcomeScreen"
+                );
+
+                onFinish();
+
+            }
+
+        }, 2000);
+
+
+        return () => clearTimeout(timer);
+
+    }, [currentSlide]);
+
+
+    // ==========================================
+    // SLIDE SUIVANT
+    // ==========================================
 
     const goToNextSlide = () => {
 
-        // Autorise à aller jusqu'à slides.length (l'écran final)
-        if (currentSlideRef.current < slides.length) {
+        if (currentSlideRef.current < slides.length - 1) {
 
             const nextSlide =
                 currentSlideRef.current + 1;
@@ -79,11 +128,9 @@ export default function SplashScreen({ onFinish }) {
     };
 
 
-    /*
-    ========================================
-    REVENIR AU SLIDE PRECEDENT
-    ========================================
-    */
+    // ==========================================
+    // SLIDE PRÉCÉDENT
+    // ==========================================
 
     const goToPreviousSlide = () => {
 
@@ -101,205 +148,69 @@ export default function SplashScreen({ onFinish }) {
     };
 
 
-    /*
-    ========================================
-    AUTO SLIDE
-    ========================================
-
-    Les 3 premiers slides défilent automatiquement (2s).
-
-    Le dernier slide (index 2) NE défile PAS automatiquement
-    vers l'écran final : il faut un swipe (ou un tap, voir plus bas).
-    */
-
-    useEffect(() => {
-
-    const timer = setTimeout(() => {
-
-        if (currentSlide < slides.length - 1) {
-
-            setCurrentSlide(currentSlide + 1);
-
-        } else {
-
-            onFinish();
-
-        }
-
-    }, 2000);
-
-    return () => clearTimeout(timer);
-
-}, [currentSlide]);
-
-    /*
-    ========================================
-    SWIPE
-    ========================================
-    */
+    // ==========================================
+    // SWIPE
+    // ==========================================
 
     const panResponder = useRef(
 
         PanResponder.create({
 
-            onMoveShouldSetPanResponder:
-                (_, gestureState) => {
+            onMoveShouldSetPanResponder: (
+                _,
+                gestureState
+            ) => {
 
-                    return Math.abs(gestureState.dx) > 20;
+                return Math.abs(
+                    gestureState.dx
+                ) > 20;
 
-                },
-
-
-            onPanResponderRelease:
-                (_, gestureState) => {
-
-                    const SWIPE_THRESHOLD = 50;
+            },
 
 
-                    // Swipe gauche
-                    if (
-                        gestureState.dx 
-                        -SWIPE_THRESHOLD
-                    ) {
+            onPanResponderRelease: (
+                _,
+                gestureState
+            ) => {
 
-                        goToNextSlide();
-
-                    }
+                const threshold = 50;
 
 
-                    // Swipe droit
-                    else if (
-                        gestureState.dx >
-                        SWIPE_THRESHOLD
-                    ) {
+                // Swipe gauche
+                if (
+                    gestureState.dx <
+                    -threshold
+                ) {
 
-                        goToPreviousSlide();
+                    goToNextSlide();
 
-                    }
+                }
 
-                },
+
+                // Swipe droit
+                else if (
+                    gestureState.dx >
+                    threshold
+                ) {
+
+                    goToPreviousSlide();
+
+                }
+
+            },
 
         })
 
     ).current;
 
 
-    /*
-    ========================================
-    TAP DE SECOURS (utile en test, notamment sur web
-    où le swipe à la souris est peu fiable)
-    ========================================
-    */
-
-    const handleTapOnLastSlide = () => {
-
-        if (currentSlide === slides.length - 1) {
-
-            goToNextSlide();
-
-        }
-
-    };
-
-
-    /*
-    ========================================
-    SI ON ARRIVE AU DERNIER ÉCRAN
-    ========================================
-    */
-
-    if (currentSlide >= slides.length) {
-
-        return (
-
-            <View style={styles.container}>
-
-                {/* IMAGE */}
-
-                <Image
-                    source={require(
-                        "../../assets/images/splash/welcome-child.png"
-                    )}
-                    style={styles.welcomeImage}
-                    resizeMode="contain"
-                />
-
-
-                {/* BOUTON LOGIN */}
-
-                <TouchableOpacity
-                    style={styles.choiceButton}
-                    onPress={() => onFinish("login")}
-                    activeOpacity={0.8}
-                >
-
-                    <Text style={styles.choiceText}>
-                        تسجيل الدخول
-                    </Text>
-
-                </TouchableOpacity>
-
-
-                {/* BOUTON REGISTER */}
-
-                <TouchableOpacity
-                    style={styles.choiceButton}
-                    onPress={() => onFinish("register")}
-                    activeOpacity={0.8}
-                >
-
-                    <Text style={styles.choiceText}>
-                        إنشاء حساب
-                    </Text>
-
-                </TouchableOpacity>
-
-
-                {/* DESCRIPTION */}
-
-                <View style={styles.descriptionBox}>
-
-                    <Text style={styles.description}>
-
-                        الروضة هي محطة شحن صغيرة
-                        {"\n"}
-                        للأرواح الصغيرة قبل انطلاقها في الحياة
-
-                    </Text>
-
-
-                    <Image
-                        source={require(
-                            "../../assets/images/splash/child-3.png"
-                        )}
-                        style={styles.smallCharacter}
-                        resizeMode="contain"
-                    />
-
-                </View>
-
-            </View>
-
-        );
-
-    }
-
-
     const slide = slides[currentSlide];
 
 
-    /*
-    ========================================
-    SLIDES 1, 2, 3
-    ========================================
-    */
-
     return (
 
-        <TouchableOpacity
-            activeOpacity={1}
+        <View
             style={styles.container}
-            onPress={handleTapOnLastSlide}
             {...panResponder.panHandlers}
         >
 
@@ -317,9 +228,7 @@ export default function SplashScreen({ onFinish }) {
             {/* TITRE */}
 
             <Text style={styles.title}>
-
                 {slide.title}
-
             </Text>
 
 
@@ -328,11 +237,11 @@ export default function SplashScreen({ onFinish }) {
             <View style={styles.descriptionBox}>
 
                 <Text style={styles.description}>
-
                     {slide.description}
-
                 </Text>
 
+
+                {/* PERSONNAGE */}
 
                 <Image
                     source={slide.character}
@@ -364,18 +273,12 @@ export default function SplashScreen({ onFinish }) {
 
             </View>
 
-        </TouchableOpacity>
+        </View>
 
     );
 
 }
 
-
-/*
-========================================
-STYLES
-========================================
-*/
 
 const styles = StyleSheet.create({
 
@@ -389,14 +292,10 @@ const styles = StyleSheet.create({
 
         paddingHorizontal: 20,
 
-        paddingTop: 50,
+        paddingTop: 70,
 
     },
 
-
-    /*
-    LOGO
-    */
 
     logo: {
 
@@ -404,14 +303,10 @@ const styles = StyleSheet.create({
 
         height: 220,
 
-        marginTop: 70,
+        marginTop: 80,
 
     },
 
-
-    /*
-    TITRE
-    */
 
     title: {
 
@@ -421,7 +316,7 @@ const styles = StyleSheet.create({
 
         fontWeight: "400",
 
-        marginTop: 30,
+        marginTop: 35,
 
         textAlign: "center",
 
@@ -430,66 +325,11 @@ const styles = StyleSheet.create({
     },
 
 
-    /*
-    IMAGE DU DERNIER SLIDE
-    */
-
-    welcomeImage: {
-
-        width: 290,
-
-        height: 270,
-
-        marginTop: 45,
-
-    },
-
-
-    /*
-    BOUTONS LOGIN / REGISTER
-    */
-
-    choiceButton: {
-
-        width: "82%",
-
-        height: 50,
-
-        backgroundColor: "#FFA936",
-
-        borderRadius: 30,
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
-        marginTop: 18,
-
-    },
-
-
-    choiceText: {
-
-        color: "#FFFFFF",
-
-        fontSize: 18,
-
-        fontWeight: "bold",
-
-        writingDirection: "rtl",
-
-    },
-
-
-    /*
-    DESCRIPTION
-    */
-
     descriptionBox: {
 
         width: "92%",
 
-        minHeight: 70,
+        minHeight: 75,
 
         backgroundColor: "#FFFFFF",
 
@@ -497,7 +337,7 @@ const styles = StyleSheet.create({
 
         marginTop: "auto",
 
-        marginBottom: 25,
+        marginBottom: 30,
 
         paddingHorizontal: 20,
 
@@ -518,7 +358,7 @@ const styles = StyleSheet.create({
 
         fontSize: 14,
 
-        lineHeight: 20,
+        lineHeight: 21,
 
         textAlign: "center",
 
@@ -528,10 +368,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    /*
-    PERSONNAGE DES SLIDES 1-3
-    */
 
     character: {
 
@@ -547,29 +383,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    /*
-    PERSONNAGE DU DERNIER SLIDE
-    */
-
-    smallCharacter: {
-
-        position: "absolute",
-
-        right: -5,
-
-        bottom: -10,
-
-        width: 85,
-
-        height: 95,
-
-    },
-
-
-    /*
-    DOTS
-    */
 
     dotsContainer: {
 

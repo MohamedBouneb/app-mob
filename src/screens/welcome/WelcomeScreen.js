@@ -18,18 +18,30 @@ export default function WelcomeScreen({
 
         <View style={styles.container}>
 
-            {/* Image principale */}
+            {/* =========================================
+                IMAGE PRINCIPALE
+            ========================================= */}
+
             <Image
-                source={require("../../assets/images/splash/welcome-child.png")}
+                source={require(
+                    "../../assets/images/splash/welcome-child.png"
+                )}
                 style={styles.mainImage}
                 resizeMode="contain"
             />
 
 
-            {/* Bouton Login */}
+            {/* =========================================
+                BOUTON LOGIN
+            ========================================= */}
+
             <TouchableOpacity
                 style={styles.button}
-                onPress={onLogin}
+                onPress={() => {
+                console.log("🔥 LOGIN PRESSED");
+                onLogin();
+                }}
+                activeOpacity={0.8}
             >
 
                 <Text style={styles.buttonText}>
@@ -39,10 +51,17 @@ export default function WelcomeScreen({
             </TouchableOpacity>
 
 
-            {/* Bouton Register */}
+            {/* =========================================
+                BOUTON REGISTER
+            ========================================= */}
+
             <TouchableOpacity
                 style={styles.button}
-                onPress={onRegister}
+                onPress={() => {
+                console.log("🔥 REGISTER PRESSED");
+                onRegister();
+                }}
+                activeOpacity={0.8}
             >
 
                 <Text style={styles.buttonText}>
@@ -52,17 +71,25 @@ export default function WelcomeScreen({
             </TouchableOpacity>
 
 
-            {/* Description */}
+            {/* =========================================
+                DESCRIPTION
+            ========================================= */}
+
             <View style={styles.descriptionBox}>
 
                 <Text style={styles.description}>
+
                     الروضة هي محطة شحن صغيرة
                     {"\n"}
                     للأرواح الصغيرة قبل انطلاقها في الحياة
+
                 </Text>
 
+
                 <Image
-                    source={require("../../assets/images/splash/child-3.png")}
+                    source={require(
+                        "../../assets/images/splash/child-3.png"
+                    )}
                     style={styles.character}
                     resizeMode="contain"
                 />
