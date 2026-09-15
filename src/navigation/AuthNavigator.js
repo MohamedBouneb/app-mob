@@ -1,65 +1,39 @@
-import React from "react";
-
-import {
-    createNativeStackNavigator
-} from "@react-navigation/native-stack";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import Routes from "../constants/routes";
 
+import FargotPasswordScreen from "../screens/auth/FargotPasswordScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
-import FargotPasswordScreen from "../screens/auth/FargotPasswordScreen";
+import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
 import VerifyCodeScreen from "../screens/auth/VerifyCodeScreen";
-
 
 const Stack = createNativeStackNavigator();
 
+export default function AuthNavigator({ initialRouteName }) {
+  console.log("AuthNavigator rendered");
 
-export default function AuthNavigator({
-    initialRouteName
-}) {
+  return (
+    <Stack.Navigator
+      initialRouteName={initialRouteName || Routes.LOGIN}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name={Routes.LOGIN} component={LoginScreen} />
 
-    console.log(
-        "AuthNavigator initial route:",
-        initialRouteName
-    );
+      <Stack.Screen name={Routes.REGISTER} component={RegisterScreen} />
 
+      <Stack.Screen
+        name={Routes.FORGOT_PASSWORD}
+        component={FargotPasswordScreen}
+      />
+      <Stack.Screen
+        name={Routes.RESET_PASSWORD}
+        component={ResetPasswordScreen}
+      />
 
-    return (
-
-        <Stack.Navigator
-
-            initialRouteName={
-                initialRouteName || Routes.LOGIN
-            }
-
-            screenOptions={{
-                headerShown: false
-            }}
-
-        >
-
-            <Stack.Screen
-                name={Routes.LOGIN}
-                component={LoginScreen}
-            />
-
-            <Stack.Screen
-                name={Routes.REGISTER}
-                component={RegisterScreen}
-            />
-
-            <Stack.Screen
-                name={Routes.FORGOT_PASSWORD}
-                component={FargotPasswordScreen}
-            />
-
-            <Stack.Screen
-                name={Routes.VERIFY_CODE}
-                component={VerifyCodeScreen}
-            />
-
-        </Stack.Navigator>
-
-    );
+      <Stack.Screen name={Routes.VERIFY_CODE} component={VerifyCodeScreen} />
+    </Stack.Navigator>
+  );
 }

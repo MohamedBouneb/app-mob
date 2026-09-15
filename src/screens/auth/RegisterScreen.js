@@ -417,7 +417,7 @@ export default function RegisterScreen({ navigation }) {
 
                         <Text style={styles.buttonText}>
 
-                            إنشاء حساب
+                            إسجل الآن
 
                         </Text>
 

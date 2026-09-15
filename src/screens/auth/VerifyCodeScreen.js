@@ -1,750 +1,546 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
 import Routes from "../../constants/routes";
 
-
 export default function VerifyCodeScreen({ navigation, route }) {
+  // ==========================================
+  // CODE
+  // ==========================================
 
-    // ==========================================
-    // CODE
-    // ==========================================
+  const [code, setCode] = useState(["", "", "", ""]);
 
-    const [code, setCode] = useState(["", "", "", ""]);
+  const [seconds, setSeconds] = useState(30);
 
-    const [seconds, setSeconds] = useState(30);
+  const inputRefs = useRef([]);
 
-    const inputRefs = useRef([]);
+  // Email reçu depuis l'écran précédent
+  const email = route?.params?.email || "بريدك الإلكتروني";
 
+  // ==========================================
+  // COMPTEUR
+  // ==========================================
 
-    // Email reçu depuis l'écran précédent
-    const email = route?.params?.email || "بريدك الإلكتروني";
+  useEffect(() => {
+    if (seconds <= 0) {
+      return;
+    }
 
+    const timer = setInterval(() => {
+      setSeconds((prev) => prev - 1);
+    }, 1000);
 
-    // ==========================================
-    // COMPTEUR
-    // ==========================================
+    return () => clearInterval(timer);
+  }, [seconds]);
 
-    useEffect(() => {
+  // ==========================================
+  // CHANGEMENT DU CODE
+  // ==========================================
 
-        if (seconds <= 0) {
-            return;
-        }
+  const handleCodeChange = (value, index) => {
+    // Garder seulement un chiffre
+    const digit = value.replace(/[^0-9]/g, "");
 
-        const timer = setInterval(() => {
+    const newCode = [...code];
 
-            setSeconds((prev) => prev - 1);
+    newCode[index] = digit;
 
-        }, 1000);
+    setCode(newCode);
 
+    // Passer automatiquement à la case suivante
+    if (digit && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
 
-        return () => clearInterval(timer);
+  // ==========================================
+  // RETOUR AVEC BACKSPACE
+  // ==========================================
 
-    }, [seconds]);
+  const handleKeyPress = ({ nativeEvent }, index) => {
+    if (nativeEvent.key === "Backspace" && code[index] === "" && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
 
+  // ==========================================
+  // RENVOYER LE CODE
+  // ==========================================
 
-    // ==========================================
-    // CHANGEMENT DU CODE
-    // ==========================================
+  const handleResend = () => {
+    if (seconds > 0) {
+      return;
+    }
 
-    const handleCodeChange = (value, index) => {
+    console.log("📩 Nouveau code envoyé à :", email);
 
-        // Garder seulement un chiffre
-        const digit = value.replace(/[^0-9]/g, "");
+    setSeconds(30);
 
-        const newCode = [...code];
+    setCode(["", "", "", ""]);
 
-        newCode[index] = digit;
+    inputRefs.current[0]?.focus();
+  };
 
-        setCode(newCode);
+  // ==========================================
+  // VÉRIFICATION
+  // ==========================================
 
+  const handleVerify = () => {
+    const verificationCode = code.join("");
 
-        // Passer automatiquement à la case suivante
-        if (digit && index < 3) {
+    console.log("🔐 Code de vérification :", verificationCode);
 
-            inputRefs.current[index + 1]?.focus();
+    if (verificationCode.length !== 4) {
+      console.log("⚠️ Veuillez entrer les 4 chiffres");
 
-        }
+      return;
+    }
+    if (verificationCode === "3333") {
+      console.log("✅ Code vérifié");
 
-    };
+      navigation.navigate(Routes.RESET_PASSWORD);
+    } else {
+      console.log("❌ Code incorrect");
+    }
 
+    // ======================================
+    // POUR LE MOMENT : FAKE VERIFICATION
+    // ======================================
 
-    // ==========================================
-    // RETOUR AVEC BACKSPACE
-    // ==========================================
+    console.log("✅ Code vérifié");
 
-    const handleKeyPress = ({ nativeEvent }, index) => {
-
-        if (
-            nativeEvent.key === "Backspace" &&
-            code[index] === "" &&
-            index > 0
-        ) {
-
-            inputRefs.current[index - 1]?.focus();
-
-        }
-
-    };
-
-
-    // ==========================================
-    // RENVOYER LE CODE
-    // ==========================================
-
-    const handleResend = () => {
-
-        if (seconds > 0) {
-            return;
-        }
-
-
-        console.log("📩 Nouveau code envoyé à :", email);
-
-        setSeconds(30);
-
-        setCode(["", "", "", ""]);
-
-        inputRefs.current[0]?.focus();
-
-    };
-
-
-    // ==========================================
-    // VÉRIFICATION
-    // ==========================================
-
-    const handleVerify = () => {
-
-        const verificationCode = code.join("");
-
-        console.log(
-            "🔐 Code de vérification :",
-            verificationCode
-        );
-
-
-        if (verificationCode.length !== 4) {
-
-            console.log(
-                "⚠️ Veuillez entrer les 4 chiffres"
-            );
-
-            return;
-        }
-
-
-        // ======================================
-        // POUR LE MOMENT : FAKE VERIFICATION
-        // ======================================
-
-        console.log("✅ Code vérifié");
-
-
-        /*
+    /*
             Ici tu peux plus tard appeler ton API :
 
             await verifyCode(email, verificationCode);
 
         */
 
+    // Exemple :
+    // navigation.navigate(Routes.HOME);
+  };
 
-        // Exemple :
-        // navigation.navigate(Routes.HOME);
+  // ==========================================
+  // INTERFACE
+  // ==========================================
 
-    };
-
-
-    // ==========================================
-    // INTERFACE
-    // ==========================================
-
-    return (
-
-        <KeyboardAvoidingView
-
-            style={styles.screen}
-
-            behavior={
-                Platform.OS === "ios"
-                    ? "padding"
-                    : undefined
-            }
-
-        >
-
-            <ScrollView
-
-                contentContainerStyle={styles.scrollContainer}
-
-                showsVerticalScrollIndicator={false}
-
-                keyboardShouldPersistTaps="handled"
-
-            >
-
-                <View style={styles.card}>
-
-
-                    {/* =================================
+  return (
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.card}>
+          {/* =================================
                         BOUTON RETOUR
                     ================================= */}
 
-                    <TouchableOpacity
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={38} color="#111111" />
+          </TouchableOpacity>
 
-                        style={styles.backButton}
-
-                        onPress={() => navigation.goBack()}
-
-                        activeOpacity={0.7}
-
-                    >
-
-                        <Ionicons
-                            name="chevron-back"
-                            size={38}
-                            color="#111111"
-                        />
-
-                    </TouchableOpacity>
-
-
-                    {/* =================================
+          {/* =================================
                         CONTENU
                     ================================= */}
 
-                    <View style={styles.content}>
+          <View style={styles.content}>
+            {/* TITRE */}
 
+            <Text style={styles.title}>إدخال رمز التحقق</Text>
 
-                        {/* TITRE */}
+            {/* DESCRIPTION */}
 
-                        <Text style={styles.title}>
+            <Text style={styles.subtitle}>
+              أرسلنا رمز التحقق إلى بريدك
+              {"\n"}
+              الإلكتروني
+            </Text>
 
-                            إدخال رمز التحقق
-
-                        </Text>
-
-
-                        {/* DESCRIPTION */}
-
-                        <Text style={styles.subtitle}>
-
-                            أرسلنا رمز التحقق إلى بريدك
-
-                            {"\n"}
-
-                            الإلكتروني
-
-                        </Text>
-
-
-                        {/* =================================
+            {/* =================================
                             CODE INPUTS
                         ================================= */}
 
-                        <View style={styles.codeContainer}>
+            <View style={styles.codeContainer}>
+              {code.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
+                  style={styles.codeInput}
+                  value={digit}
+                  onChangeText={(value) => handleCodeChange(value, index)}
+                  onKeyPress={(event) => handleKeyPress(event, index)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  textAlign="center"
+                  selectionColor="#F52F46"
+                />
+              ))}
+            </View>
 
-                            {code.map((digit, index) => (
-
-                                <TextInput
-
-                                    key={index}
-
-                                    ref={(ref) => {
-                                        inputRefs.current[index] = ref;
-                                    }}
-
-                                    style={styles.codeInput}
-
-                                    value={digit}
-
-                                    onChangeText={(value) =>
-                                        handleCodeChange(
-                                            value,
-                                            index
-                                        )
-                                    }
-
-                                    onKeyPress={(event) =>
-                                        handleKeyPress(
-                                            event,
-                                            index
-                                        )
-                                    }
-
-                                    keyboardType="number-pad"
-
-                                    maxLength={1}
-
-                                    textAlign="center"
-
-                                    selectionColor="#F52F46"
-
-                                />
-
-                            ))}
-
-                        </View>
-
-
-                        {/* =================================
+            {/* =================================
                             RESEND
                         ================================= */}
 
-                        <View style={styles.resendContainer}>
+            <View style={styles.resendContainer}>
+              <TouchableOpacity onPress={handleResend} disabled={seconds > 0}>
+                <Text
+                  style={[
+                    styles.resendText,
 
-                            <TouchableOpacity
+                    seconds > 0 && styles.resendDisabled,
+                  ]}
+                >
+                  لم يصلك الرمز؟{" "}
+                  <Text style={styles.resendActive}>إعادة الإرسال</Text>
+                </Text>
+              </TouchableOpacity>
 
-                                onPress={handleResend}
+              <Text style={styles.timerText}>
+                طلب رمز جديد خلال {seconds} ثانية
+              </Text>
+            </View>
 
-                                disabled={seconds > 0}
-
-                            >
-
-                                <Text
-                                    style={[
-                                        styles.resendText,
-
-                                        seconds > 0 &&
-                                        styles.resendDisabled
-                                    ]}
-                                >
-
-                                    لم يصلك الرمز؟
-
-                                    {" "}
-
-                                    <Text style={styles.resendActive}>
-
-                                        إعادة الإرسال
-
-                                    </Text>
-
-                                </Text>
-
-                            </TouchableOpacity>
-
-
-                            <Text style={styles.timerText}>
-
-                                طلب رمز جديد خلال {seconds} ثانية
-
-                            </Text>
-
-                        </View>
-
-
-                        {/* =================================
+            {/* =================================
                             VERIFY BUTTON
                         ================================= */}
 
-                        <TouchableOpacity
+            <TouchableOpacity
+              style={styles.verifyButton}
+              onPress={handleVerify}
+              activeOpacity={0.8}
+            >
+              {/* Cercle gauche */}
 
-                            style={styles.verifyButton}
+              <View style={styles.buttonCircle} />
 
-                            onPress={handleVerify}
+              <Text style={styles.verifyButtonText}>التحقق والمتابعة</Text>
 
-                            activeOpacity={0.8}
+              {/* Décoration droite */}
 
-                        >
-
-                            {/* Cercle gauche */}
-
-                            <View style={styles.buttonCircle} />
-
-
-                            <Text style={styles.verifyButtonText}>
-
-                                التحقق والمتابعة
-
-                            </Text>
-
-
-                            {/* Décoration droite */}
-
-                            <View
-                                style={styles.buttonDecoration}
-                            />
-
-                        </TouchableOpacity>
-
-
-                    </View>
-
-                </View>
-
-            </ScrollView>
-
-        </KeyboardAvoidingView>
-
-    );
-
+              <View style={styles.buttonDecoration} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 }
-
 
 // ==================================================
 // STYLES
 // ==================================================
 
 const styles = StyleSheet.create({
+  // ==========================================
+  // SCREEN
+  // ==========================================
 
-    // ==========================================
-    // SCREEN
-    // ==========================================
+  screen: {
+    flex: 1,
 
-    screen: {
+    backgroundColor: "#242424",
+  },
 
-        flex: 1,
+  // ==========================================
+  // SCROLL
+  // ==========================================
 
-        backgroundColor: "#242424",
+  scrollContainer: {
+    flexGrow: 1,
 
+    justifyContent: "center",
+
+    alignItems: "center",
+
+    paddingVertical: 15,
+  },
+
+  // ==========================================
+  // CARD
+  // ==========================================
+
+  card: {
+    width: "90%",
+
+    minHeight: 740,
+
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: 32,
+
+    overflow: "hidden",
+
+    position: "relative",
+  },
+
+  // ==========================================
+  // BACK BUTTON
+  // ==========================================
+
+  backButton: {
+    position: "absolute",
+
+    top: 55,
+
+    left: 15,
+
+    zIndex: 10,
+
+    width: 45,
+
+    height: 45,
+
+    justifyContent: "center",
+
+    alignItems: "center",
+  },
+
+  // ==========================================
+  // CONTENT
+  // ==========================================
+
+  content: {
+    flex: 1,
+
+    alignItems: "center",
+
+    paddingTop: 125,
+
+    paddingHorizontal: 18,
+  },
+
+  // ==========================================
+  // TITLE
+  // ==========================================
+
+  title: {
+    width: "100%",
+
+    color: "#111111",
+
+    fontSize: 32,
+
+    fontWeight: "400",
+
+    textAlign: "right",
+
+    writingDirection: "rtl",
+
+    marginBottom: 5,
+  },
+
+  // ==========================================
+  // SUBTITLE
+  // ==========================================
+
+  subtitle: {
+    width: "100%",
+
+    color: "#777777",
+
+    fontSize: 17,
+
+    lineHeight: 29,
+
+    fontWeight: "400",
+
+    textAlign: "right",
+
+    writingDirection: "rtl",
+
+    marginBottom: 45,
+  },
+
+  // ==========================================
+  // CODE
+  // ==========================================
+
+  codeContainer: {
+    width: "100%",
+
+    flexDirection: "row",
+
+    justifyContent: "space-between",
+
+    alignItems: "center",
+
+    paddingHorizontal: 0,
+
+    direction: "ltr",
+  },
+
+  codeInput: {
+    width: 70,
+
+    height: 74,
+
+    backgroundColor: "#FFE9B3",
+
+    borderRadius: 10,
+
+    fontSize: 22,
+
+    color: "#555555",
+
+    textAlign: "center",
+
+    borderWidth: 0,
+  },
+
+  // ==========================================
+  // RESEND
+  // ==========================================
+
+  resendContainer: {
+    width: "100%",
+
+    alignItems: "center",
+
+    marginTop: 67,
+  },
+
+  resendText: {
+    fontSize: 12,
+
+    color: "#222222",
+
+    textAlign: "center",
+
+    writingDirection: "rtl",
+  },
+
+  resendActive: {
+    color: "#F52F46",
+
+    fontWeight: "500",
+  },
+
+  resendDisabled: {
+    color: "#222222",
+  },
+
+  timerText: {
+    fontSize: 11,
+
+    color: "#777777",
+
+    marginTop: 5,
+
+    textAlign: "center",
+
+    writingDirection: "rtl",
+  },
+
+  // ==========================================
+  // VERIFY BUTTON
+  // ==========================================
+
+  verifyButton: {
+    width: 210,
+
+    height: 39,
+
+    backgroundColor: "#FF6F87",
+
+    borderRadius: 22,
+
+    marginTop: 135,
+
+    justifyContent: "center",
+
+    alignItems: "center",
+
+    position: "relative",
+
+    overflow: "hidden",
+
+    shadowColor: "#65C9E8",
+
+    shadowOffset: {
+      width: 0,
+
+      height: 10,
     },
 
+    shadowOpacity: 0.3,
 
-    // ==========================================
-    // SCROLL
-    // ==========================================
+    shadowRadius: 12,
 
-    scrollContainer: {
+    elevation: 5,
+  },
 
-        flexGrow: 1,
+  verifyButtonText: {
+    color: "#FFFFFF",
 
-        justifyContent: "center",
+    fontSize: 17,
 
-        alignItems: "center",
+    fontWeight: "700",
 
-        paddingVertical: 15,
+    writingDirection: "rtl",
 
-    },
+    zIndex: 2,
+  },
 
+  // ==========================================
+  // CERCLE GAUCHE
+  // ==========================================
 
-    // ==========================================
-    // CARD
-    // ==========================================
+  buttonCircle: {
+    position: "absolute",
 
-    card: {
+    left: 12,
 
-        width: "90%",
+    width: 21,
 
-        minHeight: 740,
+    height: 21,
 
-        backgroundColor: "#FFFFFF",
+    borderRadius: 20,
 
-        borderRadius: 32,
+    borderWidth: 2,
 
-        overflow: "hidden",
+    borderColor: "#FFFFFF",
 
-        position: "relative",
+    zIndex: 3,
+  },
 
-    },
+  // ==========================================
+  // DECORATION DROITE
+  // ==========================================
 
+  buttonDecoration: {
+    position: "absolute",
 
-    // ==========================================
-    // BACK BUTTON
-    // ==========================================
+    right: -8,
 
-    backButton: {
+    bottom: -8,
 
-        position: "absolute",
+    width: 55,
 
-        top: 55,
+    height: 35,
 
-        left: 15,
+    borderRadius: 30,
 
-        zIndex: 10,
-
-        width: 45,
-
-        height: 45,
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
-    },
-
-
-    // ==========================================
-    // CONTENT
-    // ==========================================
-
-    content: {
-
-        flex: 1,
-
-        alignItems: "center",
-
-        paddingTop: 125,
-
-        paddingHorizontal: 18,
-
-    },
-
-
-    // ==========================================
-    // TITLE
-    // ==========================================
-
-    title: {
-
-        width: "100%",
-
-        color: "#111111",
-
-        fontSize: 32,
-
-        fontWeight: "400",
-
-        textAlign: "right",
-
-        writingDirection: "rtl",
-
-        marginBottom: 5,
-
-    },
-
-
-    // ==========================================
-    // SUBTITLE
-    // ==========================================
-
-    subtitle: {
-
-        width: "100%",
-
-        color: "#777777",
-
-        fontSize: 17,
-
-        lineHeight: 29,
-
-        fontWeight: "400",
-
-        textAlign: "right",
-
-        writingDirection: "rtl",
-
-        marginBottom: 45,
-
-    },
-
-
-    // ==========================================
-    // CODE
-    // ==========================================
-
-    codeContainer: {
-
-        width: "100%",
-
-        flexDirection: "row",
-
-        justifyContent: "space-between",
-
-        alignItems: "center",
-
-        paddingHorizontal: 0,
-
-        direction: "ltr",
-
-    },
-
-
-    codeInput: {
-
-        width: 70,
-
-        height: 74,
-
-        backgroundColor: "#FFE9B3",
-
-        borderRadius: 10,
-
-        fontSize: 22,
-
-        color: "#555555",
-
-        textAlign: "center",
-
-        borderWidth: 0,
-
-    },
-
-
-    // ==========================================
-    // RESEND
-    // ==========================================
-
-    resendContainer: {
-
-        width: "100%",
-
-        alignItems: "center",
-
-        marginTop: 67,
-
-    },
-
-
-    resendText: {
-
-        fontSize: 12,
-
-        color: "#222222",
-
-        textAlign: "center",
-
-        writingDirection: "rtl",
-
-    },
-
-
-    resendActive: {
-
-        color: "#F52F46",
-
-        fontWeight: "500",
-
-    },
-
-
-    resendDisabled: {
-
-        color: "#222222",
-
-    },
-
-
-    timerText: {
-
-        fontSize: 11,
-
-        color: "#777777",
-
-        marginTop: 5,
-
-        textAlign: "center",
-
-        writingDirection: "rtl",
-
-    },
-
-
-    // ==========================================
-    // VERIFY BUTTON
-    // ==========================================
-
-    verifyButton: {
-
-        width: 210,
-
-        height: 39,
-
-        backgroundColor: "#FF6F87",
-
-        borderRadius: 22,
-
-        marginTop: 135,
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
-        position: "relative",
-
-        overflow: "hidden",
-
-        shadowColor: "#65C9E8",
-
-        shadowOffset: {
-
-            width: 0,
-
-            height: 10,
-
-        },
-
-        shadowOpacity: 0.30,
-
-        shadowRadius: 12,
-
-        elevation: 5,
-
-    },
-
-
-    verifyButtonText: {
-
-        color: "#FFFFFF",
-
-        fontSize: 17,
-
-        fontWeight: "700",
-
-        writingDirection: "rtl",
-
-        zIndex: 2,
-
-    },
-
-
-    // ==========================================
-    // CERCLE GAUCHE
-    // ==========================================
-
-    buttonCircle: {
-
-        position: "absolute",
-
-        left: 12,
-
-        width: 21,
-
-        height: 21,
-
-        borderRadius: 20,
-
-        borderWidth: 2,
-
-        borderColor: "#FFFFFF",
-
-        zIndex: 3,
-
-    },
-
-
-    // ==========================================
-    // DECORATION DROITE
-    // ==========================================
-
-    buttonDecoration: {
-
-        position: "absolute",
-
-        right: -8,
-
-        bottom: -8,
-
-        width: 55,
-
-        height: 35,
-
-        borderRadius: 30,
-
-        backgroundColor: "#F57C91",
-
-    },
-
+    backgroundColor: "#F57C91",
+  },
 });
