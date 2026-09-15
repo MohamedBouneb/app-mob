@@ -9,6 +9,10 @@ const Routes = {
   TEACHER: "Teacher",
   PARENT: "Parent",
   Home: "Home",
+
+  ROLE_SELECTION: "RoleSelection",
+  PARENT_REGISTER: "ParentRegister",
+  TEACHER_REGISTER: "TeacherRegister",
 };
 
 export default Routes;
