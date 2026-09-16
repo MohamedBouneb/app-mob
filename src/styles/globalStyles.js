@@ -1,45 +1,140 @@
 import { StyleSheet } from "react-native";
 
-import Theme from "./theme";
+import colors from "./colors";
+import typography from "./typography";
+import spacing from "./spacing";
 
-const GlobalStyles = StyleSheet.create({
+const globalStyle = StyleSheet.create({
 
-    container:{
+    // =========================
+    // Containers
+    // =========================
 
-        flex:1,
-
-        backgroundColor:Theme.colors.background,
-
-        padding:Theme.spacing.md,
-
+    container: {
+        flex: 1,
+        backgroundColor: colors.background,
     },
 
-    title:{
-
-        fontSize:Theme.typography.h2,
-
-        color:Theme.colors.textPrimary,
-
-        fontWeight:"700",
-
+    screen: {
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingHorizontal: spacing.screenHorizontal,
     },
 
-    subtitle:{
-
-        fontSize:Theme.typography.body,
-
-        color:Theme.colors.textSecondary,
-
+    center: {
+        justifyContent: "center",
+        alignItems: "center",
     },
 
-    center:{
 
-        justifyContent:"center",
+    // =========================
+    // Text
+    // =========================
 
-        alignItems:"center",
+    title: {
+        ...typography.title,
+        color: colors.text,
+    },
 
-    }
+    subtitle: {
+        ...typography.subtitle,
+        color: colors.textLight,
+    },
 
+    body: {
+        ...typography.body,
+        color: colors.textMedium,
+    },
+
+
+    // =========================
+    // Buttons
+    // =========================
+
+    primaryButton: {
+        height: 48,
+
+        backgroundColor: colors.primary,
+
+        borderRadius: spacing.radiusRound,
+
+        alignItems: "center",
+        justifyContent: "center",
+
+        flexDirection: "row",
+    },
+
+
+    // =========================
+    // Inputs
+    // =========================
+
+    inputContainer: {
+        minHeight: 44,
+
+        borderWidth: 1,
+        borderColor: colors.borderInput,
+
+        borderRadius: spacing.radiusSmall,
+
+        backgroundColor: colors.white,
+
+        flexDirection: "row",
+        alignItems: "center",
+
+        paddingHorizontal: spacing.md,
+    },
+
+    input: {
+        flex: 1,
+
+        fontSize: 14,
+
+        color: colors.text,
+
+        writingDirection: "rtl",
+    },
+
+
+    // =========================
+    // Cards
+    // =========================
+
+    card: {
+        backgroundColor: colors.white,
+
+        borderRadius: spacing.radiusLarge,
+
+        padding: spacing.lg,
+
+        shadowColor: "#000",
+
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+
+        shadowOpacity: 0.08,
+
+        shadowRadius: 8,
+
+        elevation: 3,
+    },
+
+
+    // =========================
+    // Arabic
+    // =========================
+
+    textArabic: {
+        writingDirection: "rtl",
+        textAlign: "right",
+    },
+
+    textArabicCenter: {
+        writingDirection: "rtl",
+        textAlign: "center",
+    },
 });
 
-export default GlobalStyles;
+export default globalStyle;

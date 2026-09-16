@@ -1,23 +1,75 @@
-// src/styles/typography.js
+const typography = {
+    // =========================
+    // Titles
+    // =========================
 
-const Typography = {
+    titleLarge: {
+        fontSize: 28,
+        fontWeight: "800",
+    },
 
-    fontFamily: "Poppins",
+    title: {
+        fontSize: 24,
+        fontWeight: "800",
+    },
 
-    h1: 32,
+    titleMedium: {
+        fontSize: 21,
+        fontWeight: "700",
+    },
 
-    h2: 26,
+    subtitle: {
+        fontSize: 15,
+        fontWeight: "400",
+    },
 
-    h3: 22,
+    // =========================
+    // Body
+    // =========================
 
-    h4: 18,
+    body: {
+        fontSize: 14,
+        fontWeight: "400",
+    },
 
-    body: 16,
+    bodyMedium: {
+        fontSize: 14,
+        fontWeight: "600",
+    },
 
-    small: 14,
+    bodyBold: {
+        fontSize: 14,
+        fontWeight: "700",
+    },
 
-    tiny: 12,
+    small: {
+        fontSize: 12,
+        fontWeight: "400",
+    },
 
+    smallMedium: {
+        fontSize: 12,
+        fontWeight: "600",
+    },
+
+    button: {
+        fontSize: 16,
+        fontWeight: "700",
+    },
+
+    // =========================
+    // Arabic
+    // =========================
+
+    arabic: {
+        writingDirection: "rtl",
+        textAlign: "right",
+    },
+
+    arabicCenter: {
+        writingDirection: "rtl",
+        textAlign: "center",
+    },
 };
 
-export default Typography;
+export default typography;
