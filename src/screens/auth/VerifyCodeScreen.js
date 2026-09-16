@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
 
     paddingHorizontal: 0,
 
-    direction: "ltr",
+    writingDirection: "ltr",
   },
 
   codeInput: {
