@@ -167,10 +167,7 @@ export default function TeacherRegisterScreen({ navigation }) {
                             لمحة عن الملف الشخصي
                         </Text>
 
-                        <Text style={styles.introText}>
-                            أنا سأقدم نموذجاً مختلفاً:
-                        </Text>
-
+                       
 
                         {/* =========================
                             ADDRESS
@@ -297,9 +294,14 @@ export default function TeacherRegisterScreen({ navigation }) {
                             SKIP
                         ========================= */}
 
-                        <Text style={styles.skipText}>
-                            تخطي للوقت الحالي
-                        </Text>
+                        <TouchableOpacity
+                        onPress={() => navigation.goBack()}
+                        activeOpacity={0.7}
+                                        >
+                                <Text style={styles.skipText}>
+                                   تخطي للوقت الحالي
+                               </Text>
+                        </TouchableOpacity>
 
 
                         {/* =========================

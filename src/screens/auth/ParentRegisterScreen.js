@@ -142,7 +142,7 @@ export default function ParentRegisterScreen({ navigation }) {
                         {/* Title */}
 
                         <Text style={styles.title}>
-                            بالنسبة للوالد
+                             بالنسبة للولي
                         </Text>
 
 
@@ -260,9 +260,14 @@ export default function ParentRegisterScreen({ navigation }) {
 
                         {/* Bottom message */}
 
-                        <Text style={styles.skipText}>
-                            تخطي للوقت الحالي
-                        </Text>
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.skipText}>
+                                تخطي للوقت الحالي
+                            </Text>
+                        </TouchableOpacity>
 
                     </View>
 

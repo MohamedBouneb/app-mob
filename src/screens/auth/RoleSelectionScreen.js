@@ -1,4 +1,5 @@
 import React from "react";
+
 import {
     View,
     Text,
@@ -7,97 +8,159 @@ import {
     SafeAreaView,
     StatusBar,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import Routes from "../../constants/routes";
 
-const RED = "#F52F46";
-const DARK_RED = "#D91F3A";
-const LIGHT_RED = "#FFF0F2";
+import colors from "../../styles/colors";
+import typography from "../../styles/typography";
+import spacing from "../../styles/spacing";
+
 
 export default function RoleSelectionScreen({ navigation }) {
+
+    // ==========================================
+    // Parent
+    // ==========================================
 
     const handleParent = () => {
         navigation.navigate(Routes.PARENT_REGISTER);
     };
 
+
+    // ==========================================
+    // Teacher / Animatrice
+    // ==========================================
+
     const handleTeacher = () => {
         navigation.navigate(Routes.TEACHER_REGISTER);
     };
 
+
+    // ==========================================
+    // Back
+    // ==========================================
+
+    const handleBack = () => {
+        navigation.goBack();
+    };
+
+
     return (
         <SafeAreaView style={styles.container}>
+
             <StatusBar
                 barStyle="light-content"
-                backgroundColor={RED}
+                backgroundColor={colors.primary}
             />
 
-            {/* =========================
+
+            {/* ==================================
                 RED BACKGROUND
-            ========================= */}
+            ================================== */}
+
             <View style={styles.redBackground}>
 
-                {/* Decorative circles */}
                 <View style={styles.circle1} />
+
                 <View style={styles.circle2} />
 
             </View>
 
 
-            {/* =========================
+            {/* ==================================
                 MAIN WHITE CARD
-            ========================= */}
+            ================================== */}
+
             <View style={styles.mainCard}>
 
-                {/* Small top illustration */}
+                {/* ==================================
+                    BACK BUTTON
+                ================================== */}
+
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={handleBack}
+                    activeOpacity={0.7}
+                >
+
+                    <Ionicons
+                        name="arrow-back"
+                        size={23}
+                        color={colors.textDark}
+                    />
+
+                </TouchableOpacity>
+
+
+                {/* ==================================
+                    TOP ICON
+                ================================== */}
+
                 <View style={styles.topIcon}>
+
                     <Text style={styles.familyEmoji}>
                         👨‍👩‍👧
                     </Text>
+
                 </View>
 
 
-                {/* Title */}
+                {/* ==================================
+                    TITLE
+                ================================== */}
+
                 <Text style={styles.title}>
                     اختر نوع حسابك
                 </Text>
+
 
                 <Text style={styles.subtitle}>
                     يرجى الاختيار للبدء
                 </Text>
 
 
-                {/* =========================
+                {/* ==================================
                     PARENT
-                ========================= */}
+                ================================== */}
+
                 <TouchableOpacity
                     activeOpacity={0.85}
-                    style={[
-                        styles.roleCard,
-                        styles.parentCard,
-                    ]}
+                    style={styles.roleCard}
                     onPress={handleParent}
                 >
 
                     {/* Illustration */}
+
                     <View style={styles.roleImageContainer}>
+
                         <Text style={styles.roleEmoji}>
                             👨‍👩‍👧
                         </Text>
+
                     </View>
 
+
                     {/* Check */}
+
                     <View style={styles.checkCircle}>
+
                         <Ionicons
                             name="checkmark"
                             size={18}
-                            color="#FFFFFF"
+                            color={colors.white}
                         />
+
                     </View>
 
+
                     {/* Text */}
+
                     <Text style={styles.roleTitle}>
                         وليّ أمر
                     </Text>
+
 
                     <Text style={styles.roleDescription}>
                         للوصول إلى أنشطة طفلك، والاطلاع على
@@ -110,92 +173,95 @@ export default function RoleSelectionScreen({ navigation }) {
                 </TouchableOpacity>
 
 
-                {/* =========================
+                {/* ==================================
                     TEACHER
-                ========================= */}
+                ================================== */}
+
                 <TouchableOpacity
                     activeOpacity={0.85}
-                    style={[
-                        styles.roleCard,
-                        styles.teacherCard,
-                    ]}
+                    style={styles.roleCard}
                     onPress={handleTeacher}
                 >
 
                     {/* Illustration */}
+
                     <View style={styles.teacherImageContainer}>
+
                         <Text style={styles.teacherEmoji}>
                             👩‍🏫
                         </Text>
+
                     </View>
 
+
                     {/* Check */}
-                    <View style={styles.checkCircleTeacher}>
+
+                    <View style={styles.checkCircle}>
+
                         <Ionicons
                             name="checkmark"
                             size={18}
-                            color="#FFFFFF"
+                            color={colors.white}
                         />
+
                     </View>
 
+
                     {/* Text */}
-                    <Text style={styles.teacherTitle}>
+
+                    <Text style={styles.roleTitle}>
                         منشّطة
                     </Text>
 
-                    <Text style={styles.teacherDescription}>
+
+                    <Text style={styles.roleDescription}>
                         إدارة الصفوف بكفاءة، تخطيط وتنفيذ الأنشطة
                     </Text>
 
-                    <Text style={styles.teacherDescription}>
+                    <Text style={styles.roleDescription}>
                         ومشاركة تعلم الأطفال بشكل فعال مع أولياء الأمور
                     </Text>
 
                 </TouchableOpacity>
 
 
-                {/* =========================
-                    BUTTON
-                ========================= */}
-                <TouchableOpacity
-                    style={styles.continueButton}
-                    activeOpacity={0.85}
-                    onPress={handleTeacher}
-                >
-                    <Text style={styles.continueText}>
-                        متابعة
-                    </Text>
+                {/* ==================================
+                    BOTTOM LINKS
+                ================================== */}
 
-                    <Ionicons
-                        name="arrow-forward"
-                        size={24}
-                        color="#FFFFFF"
-                    />
-                </TouchableOpacity>
-
-
-                {/* Bottom links */}
                 <View style={styles.bottomLinks}>
 
+                    {/* Cancel */}
+
                     <TouchableOpacity
-                        onPress={() => navigation.goBack()}
+                        onPress={handleBack}
                     >
+
                         <Text style={styles.cancelText}>
                             إلغاء
                         </Text>
+
                     </TouchableOpacity>
 
+
+                    {/* Login */}
+
                     <TouchableOpacity
-                        onPress={() => navigation.navigate(Routes.LOGIN)}
+                        onPress={() =>
+                            navigation.navigate(Routes.LOGIN)
+                        }
                     >
+
                         <Text style={styles.loginText}>
                             تسجيل دخول
                         </Text>
+
                     </TouchableOpacity>
 
                 </View>
 
             </View>
+
         </SafeAreaView>
     );
 }
@@ -207,56 +273,84 @@ export default function RoleSelectionScreen({ navigation }) {
 
 const styles = StyleSheet.create({
 
+    // ==================================
+    // Container
+    // ==================================
+
     container: {
         flex: 1,
-        backgroundColor: RED,
+
+        backgroundColor: colors.primary,
     },
+
+
+    // ==================================
+    // Red background
+    // ==================================
 
     redBackground: {
         position: "absolute",
+
         top: 0,
         left: 0,
         right: 0,
+
         height: "55%",
-        backgroundColor: RED,
+
+        backgroundColor: colors.primary,
+
         overflow: "hidden",
     },
 
+
     circle1: {
         position: "absolute",
+
         width: 360,
         height: 360,
+
         borderRadius: 180,
-        backgroundColor: DARK_RED,
+
+        backgroundColor: colors.primaryDark,
+
         opacity: 0.25,
+
         top: -190,
         right: -100,
     },
 
+
     circle2: {
         position: "absolute",
+
         width: 300,
         height: 300,
+
         borderRadius: 150,
+
         backgroundColor: "#FF5C6D",
+
         opacity: 0.2,
+
         top: 80,
         left: -170,
     },
 
 
-    // =========================
+    // ==================================
     // Main card
-    // =========================
+    // ==================================
 
     mainCard: {
         position: "absolute",
+
         left: 20,
         right: 20,
+
         top: 115,
         bottom: 0,
 
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
 
         borderTopLeftRadius: 40,
         borderTopRightRadius: 40,
@@ -267,27 +361,55 @@ const styles = StyleSheet.create({
         alignItems: "center",
 
         shadowColor: "#000",
+
         shadowOffset: {
             width: 0,
             height: -3,
         },
+
         shadowOpacity: 0.1,
+
         shadowRadius: 10,
 
         elevation: 8,
     },
 
 
-    // =========================
+    // ==================================
+    // Back button
+    // ==================================
+
+    backButton: {
+        position: "absolute",
+
+        top: 18,
+        left: 18,
+
+        width: 42,
+        height: 42,
+
+        borderRadius: 21,
+
+        backgroundColor: colors.backgroundLight,
+
+        justifyContent: "center",
+        alignItems: "center",
+
+        zIndex: 10,
+    },
+
+
+    // ==================================
     // Top icon
-    // =========================
+    // ==================================
 
     topIcon: {
         width: 70,
         height: 70,
+
         borderRadius: 35,
 
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
 
         justifyContent: "center",
         alignItems: "center",
@@ -295,81 +417,96 @@ const styles = StyleSheet.create({
         marginTop: -55,
 
         shadowColor: "#000",
+
         shadowOffset: {
             width: 0,
             height: 2,
         },
+
         shadowOpacity: 0.08,
+
         shadowRadius: 5,
 
         elevation: 4,
     },
+
 
     familyEmoji: {
         fontSize: 39,
     },
 
 
-    // =========================
+    // ==================================
     // Title
-    // =========================
+    // ==================================
 
     title: {
-        fontSize: 27,
-        fontWeight: "800",
-        color: "#222222",
+        ...typography.titleLarge,
 
-        marginTop: 8,
+        color: colors.text,
+
+        marginTop: spacing.sm,
 
         textAlign: "center",
+
         writingDirection: "rtl",
     },
+
 
     subtitle: {
-        fontSize: 14,
-        color: "#888888",
+        ...typography.subtitle,
 
-        marginTop: 3,
-        marginBottom: 15,
+        color: colors.textLight,
+
+        marginTop: spacing.xs,
+
+        marginBottom: spacing.lg,
 
         textAlign: "center",
+
         writingDirection: "rtl",
     },
 
 
-    // =========================
-    // Role cards
-    // =========================
+    // ==================================
+    // Role card
+    // ==================================
 
     roleCard: {
         width: "100%",
-        borderRadius: 20,
+
+        borderRadius: spacing.radiusLarge,
 
         alignItems: "center",
 
-        marginBottom: 12,
+        marginBottom: spacing.md,
+
+        paddingTop: 13,
+        paddingBottom: 13,
 
         position: "relative",
+
+        // LES DEUX CARTES SONT ROUGES
+        backgroundColor: colors.primary,
+
+        shadowColor: "#000",
+
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+
+        shadowOpacity: 0.12,
+
+        shadowRadius: 7,
+
+        elevation: 3,
     },
 
-    parentCard: {
-        backgroundColor: "#EAF7FF",
 
-        paddingTop: 13,
-        paddingBottom: 13,
-    },
-
-    teacherCard: {
-        backgroundColor: RED,
-
-        paddingTop: 13,
-        paddingBottom: 13,
-    },
-
-
-    // =========================
-    // Images
-    // =========================
+    // ==================================
+    // Parent image
+    // ==================================
 
     roleImageContainer: {
         width: 82,
@@ -377,25 +514,31 @@ const styles = StyleSheet.create({
 
         borderRadius: 41,
 
-        backgroundColor: "#DDF2FF",
+        backgroundColor: colors.white,
 
         justifyContent: "center",
         alignItems: "center",
 
         marginBottom: 4,
     },
+
 
     roleEmoji: {
         fontSize: 48,
     },
 
+
+    // ==================================
+    // Teacher image
+    // ==================================
+
     teacherImageContainer: {
-        width: 65,
-        height: 65,
+        width: 82,
+        height: 82,
 
-        borderRadius: 32.5,
+        borderRadius: 41,
 
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
 
         justifyContent: "center",
         alignItems: "center",
@@ -403,14 +546,15 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
 
+
     teacherEmoji: {
-        fontSize: 40,
+        fontSize: 45,
     },
 
 
-    // =========================
+    // ==================================
     // Check
-    // =========================
+    // ==================================
 
     checkCircle: {
         position: "absolute",
@@ -423,139 +567,79 @@ const styles = StyleSheet.create({
 
         borderRadius: 13,
 
-        backgroundColor: "#B7C7D0",
-
-        justifyContent: "center",
-        alignItems: "center",
-    },
-
-    checkCircleTeacher: {
-        position: "absolute",
-
-        right: 12,
-        top: 12,
-
-        width: 25,
-        height: 25,
-
-        borderRadius: 13,
-
-        backgroundColor: "#E85C6B",
+        backgroundColor: "rgba(255,255,255,0.25)",
 
         justifyContent: "center",
         alignItems: "center",
     },
 
 
-    // =========================
-    // Parent text
-    // =========================
+    // ==================================
+    // Role title
+    // ==================================
 
     roleTitle: {
-        fontSize: 21,
-        fontWeight: "800",
-        color: "#333333",
+        ...typography.titleMedium,
+
+        color: colors.white,
 
         marginBottom: 2,
 
         writingDirection: "rtl",
+
+        textAlign: "center",
     },
 
+
+    // ==================================
+    // Description
+    // ==================================
+
     roleDescription: {
-        fontSize: 11.5,
-        color: "#555555",
+        ...typography.small,
+
+        color: colors.white,
 
         lineHeight: 16,
 
         textAlign: "center",
-        writingDirection: "rtl",
-    },
-
-
-    // =========================
-    // Teacher text
-    // =========================
-
-    teacherTitle: {
-        fontSize: 21,
-        fontWeight: "800",
-        color: "#FFFFFF",
-
-        marginBottom: 2,
-
-        writingDirection: "rtl",
-    },
-
-    teacherDescription: {
-        fontSize: 10.5,
-        color: "#FFFFFF",
-
-        lineHeight: 15,
-
-        textAlign: "center",
-        writingDirection: "rtl",
-
-        paddingHorizontal: 5,
-    },
-
-
-    // =========================
-    // Continue button
-    // =========================
-
-    continueButton: {
-        width: "100%",
-        height: 48,
-
-        backgroundColor: RED,
-
-        borderRadius: 24,
-
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-
-        gap: 10,
-
-        marginTop: 1,
-    },
-
-    continueText: {
-        color: "#FFFFFF",
-
-        fontSize: 17,
-        fontWeight: "700",
 
         writingDirection: "rtl",
     },
 
 
-    // =========================
+    // ==================================
     // Bottom links
-    // =========================
+    // ==================================
 
     bottomLinks: {
         width: "100%",
 
         flexDirection: "row",
+
         justifyContent: "space-between",
 
         paddingHorizontal: 10,
 
-        marginTop: 9,
+        marginTop: spacing.sm,
     },
+
 
     cancelText: {
-        fontSize: 13,
-        color: "#999999",
+        ...typography.smallMedium,
+
+        color: colors.placeholder,
 
         writingDirection: "rtl",
     },
+
 
     loginText: {
-        fontSize: 13,
-        color: "#777777",
+        ...typography.smallMedium,
+
+        color: colors.textLight,
 
         writingDirection: "rtl",
     },
+
 });
