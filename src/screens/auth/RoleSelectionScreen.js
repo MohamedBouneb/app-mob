@@ -1,645 +1,540 @@
-import React from "react";
-
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
     SafeAreaView,
     StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
+//import supabase from "../../lib/supabase";
 import Routes from "../../constants/routes";
 
 import colors from "../../styles/colors";
-import typography from "../../styles/typography";
 import spacing from "../../styles/spacing";
+import typography from "../../styles/typography";
 
+export default function RoleSelectionScreen({ navigation, route }) {
+  console.log("📦 PARAMÈTRES ROLE SELECTION :", route?.params);
 
-export default function RoleSelectionScreen({ navigation }) {
+  console.log("📦 DONNÉES INSCRIPTION :", route?.params?.registrationData);
+  // ==========================================
+  // Parent
+  // ==========================================
 
-    // ==========================================
-    // Parent
-    // ==========================================
+  const handleParent = () => {
+    navigation.navigate(Routes.PARENT_REGISTER, {
+      registrationData: route.params?.registrationData,
+    });
+  };
 
-    const handleParent = () => {
-        navigation.navigate(Routes.PARENT_REGISTER);
-    };
+  // ==========================================
+  // Teacher / Animatrice
+  // ==========================================
 
+  const handleTeacher = () => {
+    navigation.navigate(Routes.TEACHER_REGISTER, {
+      registrationData: route.params?.registrationData,
+    });
+  };
 
-    // ==========================================
-    // Teacher / Animatrice
-    // ==========================================
+  // ==========================================
+  // Back
+  // ==========================================
 
-    const handleTeacher = () => {
-        navigation.navigate(Routes.TEACHER_REGISTER);
-    };
+  const handleBack = () => {
+    navigation.goBack();
+  };
 
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-    // ==========================================
-    // Back
-    // ==========================================
-
-    const handleBack = () => {
-        navigation.goBack();
-    };
-
-
-    return (
-        <SafeAreaView style={styles.container}>
-
-            <StatusBar
-                barStyle="light-content"
-                backgroundColor={colors.primary}
-            />
-
-
-            {/* ==================================
+      {/* ==================================
                 RED BACKGROUND
             ================================== */}
 
-            <View style={styles.redBackground}>
+      <View style={styles.redBackground}>
+        <View style={styles.circle1} />
 
-                <View style={styles.circle1} />
+        <View style={styles.circle2} />
+      </View>
 
-                <View style={styles.circle2} />
-
-            </View>
-
-
-            {/* ==================================
+      {/* ==================================
                 MAIN WHITE CARD
             ================================== */}
 
-            <View style={styles.mainCard}>
-
-                {/* ==================================
+      <View style={styles.mainCard}>
+        {/* ==================================
                     BACK BUTTON
                 ================================== */}
 
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={handleBack}
-                    activeOpacity={0.7}
-                >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBack}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={23} color={colors.textDark} />
+        </TouchableOpacity>
 
-                    <Ionicons
-                        name="arrow-back"
-                        size={23}
-                        color={colors.textDark}
-                    />
-
-                </TouchableOpacity>
-
-
-                {/* ==================================
+        {/* ==================================
                     TOP ICON
                 ================================== */}
 
-                <View style={styles.topIcon}>
+        <View style={styles.topIcon}>
+          <Text style={styles.familyEmoji}>👨‍👩‍👧</Text>
+        </View>
 
-                    <Text style={styles.familyEmoji}>
-                        👨‍👩‍👧
-                    </Text>
-
-                </View>
-
-
-                {/* ==================================
+        {/* ==================================
                     TITLE
                 ================================== */}
 
-                <Text style={styles.title}>
-                    اختر نوع حسابك
-                </Text>
+        <Text style={styles.title}>اختر نوع حسابك</Text>
 
+        <Text style={styles.subtitle}>يرجى الاختيار للبدء</Text>
 
-                <Text style={styles.subtitle}>
-                    يرجى الاختيار للبدء
-                </Text>
-
-
-                {/* ==================================
+        {/* ==================================
                     PARENT
                 ================================== */}
 
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.roleCard}
-                    onPress={handleParent}
-                >
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.roleCard}
+          onPress={handleParent}
+        >
+          {/* Illustration */}
 
-                    {/* Illustration */}
+          <View style={styles.roleImageContainer}>
+            <Text style={styles.roleEmoji}>👨‍👩‍👧</Text>
+          </View>
 
-                    <View style={styles.roleImageContainer}>
+          {/* Check */}
 
-                        <Text style={styles.roleEmoji}>
-                            👨‍👩‍👧
-                        </Text>
+          <View style={styles.checkCircle}>
+            <Ionicons name="checkmark" size={18} color={colors.white} />
+          </View>
 
-                    </View>
+          {/* Text */}
 
+          <Text style={styles.roleTitle}>وليّ أمر</Text>
 
-                    {/* Check */}
+          <Text style={styles.roleDescription}>
+            للوصول إلى أنشطة طفلك، والاطلاع على
+          </Text>
 
-                    <View style={styles.checkCircle}>
+          <Text style={styles.roleDescription}>
+            الأنشطة، والتواصل مع الحضانة.
+          </Text>
+        </TouchableOpacity>
 
-                        <Ionicons
-                            name="checkmark"
-                            size={18}
-                            color={colors.white}
-                        />
-
-                    </View>
-
-
-                    {/* Text */}
-
-                    <Text style={styles.roleTitle}>
-                        وليّ أمر
-                    </Text>
-
-
-                    <Text style={styles.roleDescription}>
-                        للوصول إلى أنشطة طفلك، والاطلاع على
-                    </Text>
-
-                    <Text style={styles.roleDescription}>
-                        الأنشطة، والتواصل مع الحضانة.
-                    </Text>
-
-                </TouchableOpacity>
-
-
-                {/* ==================================
+        {/* ==================================
                     TEACHER
                 ================================== */}
 
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.roleCard}
-                    onPress={handleTeacher}
-                >
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.roleCard}
+          onPress={handleTeacher}
+        >
+          {/* Illustration */}
 
-                    {/* Illustration */}
+          <View style={styles.teacherImageContainer}>
+            <Text style={styles.teacherEmoji}>👩‍🏫</Text>
+          </View>
 
-                    <View style={styles.teacherImageContainer}>
+          {/* Check */}
 
-                        <Text style={styles.teacherEmoji}>
-                            👩‍🏫
-                        </Text>
+          <View style={styles.checkCircle}>
+            <Ionicons name="checkmark" size={18} color={colors.white} />
+          </View>
 
-                    </View>
+          {/* Text */}
 
+          <Text style={styles.roleTitle}>منشّطة</Text>
 
-                    {/* Check */}
+          <Text style={styles.roleDescription}>
+            إدارة الصفوف بكفاءة، تخطيط وتنفيذ الأنشطة
+          </Text>
 
-                    <View style={styles.checkCircle}>
+          <Text style={styles.roleDescription}>
+            ومشاركة تعلم الأطفال بشكل فعال مع أولياء الأمور
+          </Text>
+        </TouchableOpacity>
 
-                        <Ionicons
-                            name="checkmark"
-                            size={18}
-                            color={colors.white}
-                        />
-
-                    </View>
-
-
-                    {/* Text */}
-
-                    <Text style={styles.roleTitle}>
-                        منشّطة
-                    </Text>
-
-
-                    <Text style={styles.roleDescription}>
-                        إدارة الصفوف بكفاءة، تخطيط وتنفيذ الأنشطة
-                    </Text>
-
-                    <Text style={styles.roleDescription}>
-                        ومشاركة تعلم الأطفال بشكل فعال مع أولياء الأمور
-                    </Text>
-
-                </TouchableOpacity>
-
-
-                {/* ==================================
+        {/* ==================================
                     BOTTOM LINKS
                 ================================== */}
 
-                <View style={styles.bottomLinks}>
+        <View style={styles.bottomLinks}>
+          {/* Cancel */}
 
-                    {/* Cancel */}
+          <TouchableOpacity onPress={handleBack}>
+            <Text style={styles.cancelText}>إلغاء</Text>
+          </TouchableOpacity>
 
-                    <TouchableOpacity
-                        onPress={handleBack}
-                    >
+          {/* Login */}
 
-                        <Text style={styles.cancelText}>
-                            إلغاء
-                        </Text>
-
-                    </TouchableOpacity>
-
-
-                    {/* Login */}
-
-                    <TouchableOpacity
-                        onPress={() =>
-                            navigation.navigate(Routes.LOGIN)
-                        }
-                    >
-
-                        <Text style={styles.loginText}>
-                            تسجيل دخول
-                        </Text>
-
-                    </TouchableOpacity>
-
-                </View>
-
-            </View>
-
-        </SafeAreaView>
-    );
+          <TouchableOpacity onPress={() => navigation.navigate(Routes.LOGIN)}>
+            <Text style={styles.loginText}>تسجيل دخول</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
 }
-
 
 // ======================================================
 // STYLES
 // ======================================================
 
 const styles = StyleSheet.create({
+  // ==================================
+  // Container
+  // ==================================
 
-    // ==================================
-    // Container
-    // ==================================
+  container: {
+    flex: 1,
 
-    container: {
-        flex: 1,
+    backgroundColor: colors.primary,
+  },
 
-        backgroundColor: colors.primary,
+  // ==================================
+  // Red background
+  // ==================================
+
+  redBackground: {
+    position: "absolute",
+
+    top: 0,
+    left: 0,
+    right: 0,
+
+    height: "55%",
+
+    backgroundColor: colors.primary,
+
+    overflow: "hidden",
+  },
+
+  circle1: {
+    position: "absolute",
+
+    width: 360,
+    height: 360,
+
+    borderRadius: 180,
+
+    backgroundColor: colors.primaryDark,
+
+    opacity: 0.25,
+
+    top: -190,
+    right: -100,
+  },
+
+  circle2: {
+    position: "absolute",
+
+    width: 300,
+    height: 300,
+
+    borderRadius: 150,
+
+    backgroundColor: "#FF5C6D",
+
+    opacity: 0.2,
+
+    top: 80,
+    left: -170,
+  },
+
+  // ==================================
+  // Main card
+  // ==================================
+
+  mainCard: {
+    position: "absolute",
+
+    left: 20,
+    right: 20,
+
+    top: 115,
+    bottom: 0,
+
+    backgroundColor: colors.white,
+
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+
+    paddingHorizontal: 18,
+    paddingTop: 28,
+
+    alignItems: "center",
+
+    shadowColor: "#000",
+
+    shadowOffset: {
+      width: 0,
+      height: -3,
     },
 
+    shadowOpacity: 0.1,
 
-    // ==================================
-    // Red background
-    // ==================================
+    shadowRadius: 10,
 
-    redBackground: {
-        position: "absolute",
+    elevation: 8,
+  },
 
-        top: 0,
-        left: 0,
-        right: 0,
+  // ==================================
+  // Back button
+  // ==================================
 
-        height: "55%",
+  backButton: {
+    position: "absolute",
 
-        backgroundColor: colors.primary,
+    top: 18,
+    left: 18,
 
-        overflow: "hidden",
+    width: 42,
+    height: 42,
+
+    borderRadius: 21,
+
+    backgroundColor: colors.backgroundLight,
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    zIndex: 10,
+  },
+
+  // ==================================
+  // Top icon
+  // ==================================
+
+  topIcon: {
+    width: 70,
+    height: 70,
+
+    borderRadius: 35,
+
+    backgroundColor: colors.white,
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    marginTop: -55,
+
+    shadowColor: "#000",
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
 
+    shadowOpacity: 0.08,
 
-    circle1: {
-        position: "absolute",
+    shadowRadius: 5,
 
-        width: 360,
-        height: 360,
+    elevation: 4,
+  },
 
-        borderRadius: 180,
+  familyEmoji: {
+    fontSize: 39,
+  },
 
-        backgroundColor: colors.primaryDark,
+  // ==================================
+  // Title
+  // ==================================
 
-        opacity: 0.25,
+  title: {
+    ...typography.titleLarge,
 
-        top: -190,
-        right: -100,
+    color: colors.text,
+
+    marginTop: spacing.sm,
+
+    textAlign: "center",
+
+    writingDirection: "rtl",
+  },
+
+  subtitle: {
+    ...typography.subtitle,
+
+    color: colors.textLight,
+
+    marginTop: spacing.xs,
+
+    marginBottom: spacing.lg,
+
+    textAlign: "center",
+
+    writingDirection: "rtl",
+  },
+
+  // ==================================
+  // Role card
+  // ==================================
+
+  roleCard: {
+    width: "100%",
+
+    borderRadius: spacing.radiusLarge,
+
+    alignItems: "center",
+
+    marginBottom: spacing.md,
+
+    paddingTop: 13,
+    paddingBottom: 13,
+
+    position: "relative",
+
+    // LES DEUX CARTES SONT ROUGES
+    backgroundColor: colors.primary,
+
+    shadowColor: "#000",
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
     },
 
+    shadowOpacity: 0.12,
 
-    circle2: {
-        position: "absolute",
+    shadowRadius: 7,
 
-        width: 300,
-        height: 300,
+    elevation: 3,
+  },
 
-        borderRadius: 150,
+  // ==================================
+  // Parent image
+  // ==================================
 
-        backgroundColor: "#FF5C6D",
+  roleImageContainer: {
+    width: 82,
+    height: 82,
 
-        opacity: 0.2,
+    borderRadius: 41,
 
-        top: 80,
-        left: -170,
-    },
+    backgroundColor: colors.white,
 
+    justifyContent: "center",
+    alignItems: "center",
 
-    // ==================================
-    // Main card
-    // ==================================
+    marginBottom: 4,
+  },
 
-    mainCard: {
-        position: "absolute",
+  roleEmoji: {
+    fontSize: 48,
+  },
 
-        left: 20,
-        right: 20,
+  // ==================================
+  // Teacher image
+  // ==================================
 
-        top: 115,
-        bottom: 0,
+  teacherImageContainer: {
+    width: 82,
+    height: 82,
 
-        backgroundColor: colors.white,
+    borderRadius: 41,
 
-        borderTopLeftRadius: 40,
-        borderTopRightRadius: 40,
+    backgroundColor: colors.white,
 
-        paddingHorizontal: 18,
-        paddingTop: 28,
+    justifyContent: "center",
+    alignItems: "center",
 
-        alignItems: "center",
+    marginBottom: 4,
+  },
 
-        shadowColor: "#000",
+  teacherEmoji: {
+    fontSize: 45,
+  },
 
-        shadowOffset: {
-            width: 0,
-            height: -3,
-        },
+  // ==================================
+  // Check
+  // ==================================
 
-        shadowOpacity: 0.1,
+  checkCircle: {
+    position: "absolute",
 
-        shadowRadius: 10,
+    right: 12,
+    top: 12,
 
-        elevation: 8,
-    },
+    width: 25,
+    height: 25,
 
+    borderRadius: 13,
 
-    // ==================================
-    // Back button
-    // ==================================
+    backgroundColor: "rgba(255,255,255,0.25)",
 
-    backButton: {
-        position: "absolute",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-        top: 18,
-        left: 18,
+  // ==================================
+  // Role title
+  // ==================================
 
-        width: 42,
-        height: 42,
+  roleTitle: {
+    ...typography.titleMedium,
 
-        borderRadius: 21,
+    color: colors.white,
 
-        backgroundColor: colors.backgroundLight,
+    marginBottom: 2,
 
-        justifyContent: "center",
-        alignItems: "center",
+    writingDirection: "rtl",
 
-        zIndex: 10,
-    },
+    textAlign: "center",
+  },
 
+  // ==================================
+  // Description
+  // ==================================
 
-    // ==================================
-    // Top icon
-    // ==================================
+  roleDescription: {
+    ...typography.small,
 
-    topIcon: {
-        width: 70,
-        height: 70,
+    color: colors.white,
 
-        borderRadius: 35,
+    lineHeight: 16,
 
-        backgroundColor: colors.white,
+    textAlign: "center",
 
-        justifyContent: "center",
-        alignItems: "center",
+    writingDirection: "rtl",
+  },
 
-        marginTop: -55,
+  // ==================================
+  // Bottom links
+  // ==================================
 
-        shadowColor: "#000",
+  bottomLinks: {
+    width: "100%",
 
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+    flexDirection: "row",
 
-        shadowOpacity: 0.08,
+    justifyContent: "space-between",
 
-        shadowRadius: 5,
+    paddingHorizontal: 10,
 
-        elevation: 4,
-    },
+    marginTop: spacing.sm,
+  },
 
+  cancelText: {
+    ...typography.smallMedium,
 
-    familyEmoji: {
-        fontSize: 39,
-    },
+    color: colors.placeholder,
 
+    writingDirection: "rtl",
+  },
 
-    // ==================================
-    // Title
-    // ==================================
+  loginText: {
+    ...typography.smallMedium,
 
-    title: {
-        ...typography.titleLarge,
+    color: colors.textLight,
 
-        color: colors.text,
-
-        marginTop: spacing.sm,
-
-        textAlign: "center",
-
-        writingDirection: "rtl",
-    },
-
-
-    subtitle: {
-        ...typography.subtitle,
-
-        color: colors.textLight,
-
-        marginTop: spacing.xs,
-
-        marginBottom: spacing.lg,
-
-        textAlign: "center",
-
-        writingDirection: "rtl",
-    },
-
-
-    // ==================================
-    // Role card
-    // ==================================
-
-    roleCard: {
-        width: "100%",
-
-        borderRadius: spacing.radiusLarge,
-
-        alignItems: "center",
-
-        marginBottom: spacing.md,
-
-        paddingTop: 13,
-        paddingBottom: 13,
-
-        position: "relative",
-
-        // LES DEUX CARTES SONT ROUGES
-        backgroundColor: colors.primary,
-
-        shadowColor: "#000",
-
-        shadowOffset: {
-            width: 0,
-            height: 3,
-        },
-
-        shadowOpacity: 0.12,
-
-        shadowRadius: 7,
-
-        elevation: 3,
-    },
-
-
-    // ==================================
-    // Parent image
-    // ==================================
-
-    roleImageContainer: {
-        width: 82,
-        height: 82,
-
-        borderRadius: 41,
-
-        backgroundColor: colors.white,
-
-        justifyContent: "center",
-        alignItems: "center",
-
-        marginBottom: 4,
-    },
-
-
-    roleEmoji: {
-        fontSize: 48,
-    },
-
-
-    // ==================================
-    // Teacher image
-    // ==================================
-
-    teacherImageContainer: {
-        width: 82,
-        height: 82,
-
-        borderRadius: 41,
-
-        backgroundColor: colors.white,
-
-        justifyContent: "center",
-        alignItems: "center",
-
-        marginBottom: 4,
-    },
-
-
-    teacherEmoji: {
-        fontSize: 45,
-    },
-
-
-    // ==================================
-    // Check
-    // ==================================
-
-    checkCircle: {
-        position: "absolute",
-
-        right: 12,
-        top: 12,
-
-        width: 25,
-        height: 25,
-
-        borderRadius: 13,
-
-        backgroundColor: "rgba(255,255,255,0.25)",
-
-        justifyContent: "center",
-        alignItems: "center",
-    },
-
-
-    // ==================================
-    // Role title
-    // ==================================
-
-    roleTitle: {
-        ...typography.titleMedium,
-
-        color: colors.white,
-
-        marginBottom: 2,
-
-        writingDirection: "rtl",
-
-        textAlign: "center",
-    },
-
-
-    // ==================================
-    // Description
-    // ==================================
-
-    roleDescription: {
-        ...typography.small,
-
-        color: colors.white,
-
-        lineHeight: 16,
-
-        textAlign: "center",
-
-        writingDirection: "rtl",
-    },
-
-
-    // ==================================
-    // Bottom links
-    // ==================================
-
-    bottomLinks: {
-        width: "100%",
-
-        flexDirection: "row",
-
-        justifyContent: "space-between",
-
-        paddingHorizontal: 10,
-
-        marginTop: spacing.sm,
-    },
-
-
-    cancelText: {
-        ...typography.smallMedium,
-
-        color: colors.placeholder,
-
-        writingDirection: "rtl",
-    },
-
-
-    loginText: {
-        ...typography.smallMedium,
-
-        color: colors.textLight,
-
-        writingDirection: "rtl",
-    },
-
+    writingDirection: "rtl",
+  },
 });

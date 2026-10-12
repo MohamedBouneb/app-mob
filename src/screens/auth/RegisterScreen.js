@@ -1,15 +1,15 @@
 import { useState } from "react";
 
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -32,37 +32,6 @@ export default function RegisterScreen({ navigation }) {
   const [accepted, setAccepted] = useState(false);
 
   // =========================
-  // Création du compte
-  // =========================
-
-  const handleRegister = async () => {
-    if (!fullName || !email || !phone || !password) {
-      console.log("Veuillez remplir tous les champs");
-      return;
-    }
-
-    if (!accepted) {
-      console.log("Veuillez accepter les conditions");
-      return;
-    }
-
-    // Pour le moment : fake inscription
-    const fakeUser = {
-      id: 1,
-      name: fullName,
-      email: email,
-      phone: phone,
-      role: "PARENT",
-    };
-
-    const fakeToken = "fake-register-token";
-
-    await login(fakeUser, fakeToken);
-
-    console.log("Compte créé avec succès");
-  };
-
-  // =========================
   // Retour Login
   // =========================
 
@@ -75,7 +44,31 @@ export default function RegisterScreen({ navigation }) {
   // =========================
 
   const goToRoleSelection = () => {
-    navigation.navigate(Routes.ROLE_SELECTION);
+    if (!fullName || !email || !phone || !password) {
+      Alert.alert("تنبيه", "يرجى ملء جميع الحقول");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert("خطأ", "يرجى إدخال بريد إلكتروني صحيح");
+      return;
+    }
+
+    if (!accepted) {
+      Alert.alert("تنبيه", "يرجى الموافقة على الشروط والأحكام");
+      return;
+    }
+
+    navigation.navigate(Routes.ROLE_SELECTION, {
+      registrationData: {
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        password,
+      },
+    });
   };
 
   return (

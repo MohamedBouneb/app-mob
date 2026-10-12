@@ -1,17 +1,17 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import {
-    View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    SafeAreaView,
-    StatusBar,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    Alert,
+    View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -20,690 +20,609 @@ import * as DocumentPicker from "expo-document-picker";
 const RED = "#F52F46";
 
 export default function TeacherRegisterScreen({ navigation }) {
+  const [address, setAddress] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [diploma, setDiploma] = useState("");
+  const [experience, setExperience] = useState("");
 
-    const [address, setAddress] = useState("");
-    const [birthDate, setBirthDate] = useState("");
-    const [diploma, setDiploma] = useState("");
-    const [experience, setExperience] = useState("");
+  const [cv, setCv] = useState(null);
 
-    const [cv, setCv] = useState(null);
+  // =========================
+  // Select CV
+  // =========================
 
+  const handlePickCV = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          "application/pdf",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ],
+        copyToCacheDirectory: true,
+      });
 
-    // =========================
-    // Select CV
-    // =========================
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setCv(result.assets[0]);
+      }
+    } catch (error) {
+      console.log("Erreur sélection CV:", error);
 
-    const handlePickCV = async () => {
+      Alert.alert("Erreur", "Impossible de sélectionner le CV.");
+    }
+  };
+  console.log("Teacher data:", {
+    address,
+    birthDate,
+    diploma,
+    experience,
+    cv,
+  });
 
-        try {
+  // =========================
+  // Submit
+  // =========================
 
-            const result =
-                await DocumentPicker.getDocumentAsync({
-                    type: [
-                        "application/pdf",
-                        "application/msword",
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    ],
-                    copyToCacheDirectory: true,
-                });
+  const handleSubmit = () => {
+    if (!address || !birthDate || !diploma || !experience) {
+      Alert.alert("تنبيه", "يرجى ملء جميع المعلومات المطلوبة");
 
-            if (
-                !result.canceled &&
-                result.assets &&
-                result.assets.length > 0
-            ) {
-                setCv(result.assets[0]);
-            }
+      return;
+    }
 
-        } catch (error) {
+    console.log("Teacher data:", {
+      address,
+      birthDate,
+      diploma,
+      experience,
+      cv,
+    });
 
-            console.log(
-                "Erreur sélection CV:",
-                error
-            );
+    console.log(
+      "📄 Informations du CV :",
+      cv
+        ? {
+            name: cv.name,
+            mimeType: cv.mimeType,
+            size: cv.size,
+            uri: cv.uri,
+          }
+        : null,
+    );
 
-            Alert.alert(
-                "Erreur",
-                "Impossible de sélectionner le CV."
-            );
-        }
-    };
+    console.log("👩‍🏫 Informations animatrice :", {
+      address,
+      birthDate,
+      diploma,
+      experience,
+    });
 
+    Alert.alert(
+      "تم الحفظ",
+      "تم حفظ معلوماتك. سيتم مراجعة طلبك من طرف الإدارة.",
+    );
+  };
 
-    // =========================
-    // Submit
-    // =========================
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={RED} />
 
-    const handleSubmit = () => {
-
-        if (
-            !address ||
-            !birthDate ||
-            !diploma ||
-            !experience
-        ) {
-
-            Alert.alert(
-                "تنبيه",
-                "يرجى ملء جميع المعلومات المطلوبة"
-            );
-
-            return;
-        }
-
-        console.log("Teacher data:", {
-            address,
-            birthDate,
-            diploma,
-            experience,
-            cv,
-        });
-
-        Alert.alert(
-            "تم الحفظ",
-            "تم حفظ معلوماتك. سيتم مراجعة طلبك من طرف الإدارة."
-        );
-    };
-
-
-    return (
-        <SafeAreaView style={styles.container}>
-
-            <StatusBar
-                barStyle="light-content"
-                backgroundColor={RED}
-            />
-
-            {/* =========================
+      {/* =========================
                 RED BACKGROUND
             ========================= */}
 
-            <View style={styles.background}>
+      <View style={styles.background}>
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+      </View>
 
-                <View style={styles.circle1} />
-                <View style={styles.circle2} />
-
-            </View>
-
-
-            <KeyboardAvoidingView
-                style={styles.keyboard}
-                behavior={
-                    Platform.OS === "ios"
-                        ? "padding"
-                        : undefined
-                }
-            >
-
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
-                >
-
-                    {/* =========================
+      <KeyboardAvoidingView
+        style={styles.keyboard}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* =========================
                         WHITE CARD
                     ========================= */}
 
-                    <View style={styles.card}>
+          <View style={styles.card}>
+            {/* Teacher icon */}
 
-                        {/* Teacher icon */}
+            <View style={styles.topIcon}>
+              <Text style={styles.teacherEmoji}>👩‍🏫</Text>
+            </View>
 
-                        <View style={styles.topIcon}>
-                            <Text style={styles.teacherEmoji}>
-                                👩‍🏫
-                            </Text>
-                        </View>
-
-
-                        {/* =========================
+            {/* =========================
                             TITLE
                         ========================= */}
 
-                        <Text style={styles.title}>
-                            بالنسبة للمنشّطة/ة
-                        </Text>
+            <Text style={styles.title}>بالنسبة للمنشّطة/ة</Text>
 
-                        <Text style={styles.profileTitle}>
-                            لمحة عن الملف الشخصي
-                        </Text>
+            <Text style={styles.profileTitle}>لمحة عن الملف الشخصي</Text>
 
-                       
-
-                        {/* =========================
+            {/* =========================
                             ADDRESS
                         ========================= */}
 
-                        <Field
-                            label="العنوان"
-                            icon="location-outline"
-                            placeholder=""
-                            value={address}
-                            onChangeText={setAddress}
-                        />
+            <Field
+              label="العنوان"
+              icon="location-outline"
+              placeholder=""
+              value={address}
+              onChangeText={setAddress}
+            />
 
-
-                        {/* =========================
+            {/* =========================
                             BIRTH DATE
                         ========================= */}
 
-                        <Field
-                            label="تاريخ الميلاد"
-                            icon="calendar-outline"
-                            placeholder="تاريخ الميلاد"
-                            value={birthDate}
-                            onChangeText={setBirthDate}
-                            keyboardType="numeric"
-                        />
+            <Field
+              label="تاريخ الميلاد"
+              icon="calendar-outline"
+              placeholder="تاريخ الميلاد"
+              value={birthDate}
+              onChangeText={setBirthDate}
+              keyboardType="numeric"
+            />
 
-
-                        {/* =========================
+            {/* =========================
                             DIPLOMA
                         ========================= */}
 
-                        <Field
-                            label="الدبلوم / المؤهل"
-                            icon="school-outline"
-                            placeholder=""
-                            value={diploma}
-                            onChangeText={setDiploma}
-                        />
+            <Field
+              label="الدبلوم / المؤهل"
+              icon="school-outline"
+              placeholder=""
+              value={diploma}
+              onChangeText={setDiploma}
+            />
 
-
-                        {/* =========================
+            {/* =========================
                             EXPERIENCE
                         ========================= */}
 
-                        <Field
-                            label="الخبرة المهنية"
-                            icon="briefcase-outline"
-                            placeholder="سنوات الخبرة"
-                            value={experience}
-                            onChangeText={setExperience}
-                            keyboardType="numeric"
-                        />
+            <Field
+              label="الخبرة المهنية"
+              icon="briefcase-outline"
+              placeholder="سنوات الخبرة"
+              value={experience}
+              onChangeText={setExperience}
+              keyboardType="numeric"
+            />
 
-
-                        {/* =========================
+            {/* =========================
                             CV
                         ========================= */}
 
-                        <Text style={styles.fieldLabel}>
-                            اختياري: سيرة ذاتية / مستند داعم
-                        </Text>
+            <Text style={styles.fieldLabel}>
+              اختياري: سيرة ذاتية / مستند داعم
+            </Text>
 
-                        <TouchableOpacity
-                            style={styles.cvContainer}
-                            onPress={handlePickCV}
-                            activeOpacity={0.8}
-                        >
+            <TouchableOpacity
+              style={styles.cvContainer}
+              onPress={handlePickCV}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={cv ? "checkmark-circle" : "cloud-upload-outline"}
+                size={21}
+                color={cv ? "#55A868" : "#E4A0A7"}
+              />
 
-                            <Ionicons
-                                name={
-                                    cv
-                                        ? "checkmark-circle"
-                                        : "cloud-upload-outline"
-                                }
-                                size={21}
-                                color={
-                                    cv
-                                        ? "#55A868"
-                                        : "#E4A0A7"
-                                }
-                            />
+              <Text
+                style={[styles.cvText, !cv && styles.cvPlaceholder]}
+                numberOfLines={1}
+              >
+                {cv ? cv.name : ""}
+              </Text>
+            </TouchableOpacity>
 
-                            <Text
-                                style={[
-                                    styles.cvText,
-                                    !cv &&
-                                        styles.cvPlaceholder,
-                                ]}
-                                numberOfLines={1}
-                            >
-                                {cv
-                                    ? cv.name
-                                    : ""}
-                            </Text>
-
-                        </TouchableOpacity>
-
-
-                        {/* =========================
+            {/* =========================
                             BUTTON
                         ========================= */}
 
-                        <TouchableOpacity
-                            style={styles.submitButton}
-                            onPress={handleSubmit}
-                            activeOpacity={0.85}
-                        >
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleSubmit}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.submitText}>حفظ ومتابعة</Text>
 
-                            <Text style={styles.submitText}>
-                                حفظ ومتابعة
-                            </Text>
+              <Ionicons name="arrow-forward" size={21} color="#FFFFFF" />
+            </TouchableOpacity>
 
-                            <Ionicons
-                                name="arrow-forward"
-                                size={21}
-                                color="#FFFFFF"
-                            />
-
-                        </TouchableOpacity>
-
-
-                        {/* =========================
+            {/* =========================
                             SKIP
                         ========================= */}
 
-                        <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        activeOpacity={0.7}
-                                        >
-                                <Text style={styles.skipText}>
-                                   تخطي للوقت الحالي
-                               </Text>
-                        </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.skipText}>تخطي للوقت الحالي</Text>
+            </TouchableOpacity>
 
-
-                        {/* =========================
+            {/* =========================
                             ADMIN INFO
                         ========================= */}
 
-                        <View style={styles.infoBox}>
+            <View style={styles.infoBox}>
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color={RED}
+              />
 
-                            <Ionicons
-                                name="information-circle-outline"
-                                size={20}
-                                color={RED}
-                            />
-
-                            <Text style={styles.infoText}>
-                                سيتم مراجعة ملفك من طرف الإدارة
-                                قبل تفعيل الحساب.
-                            </Text>
-
-                        </View>
-
-                    </View>
-
-                </ScrollView>
-
-            </KeyboardAvoidingView>
-
-        </SafeAreaView>
-    );
+              <Text style={styles.infoText}>
+                سيتم مراجعة ملفك من طرف الإدارة قبل تفعيل الحساب.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
-
 
 // ======================================================
 // FIELD COMPONENT
 // ======================================================
 
 function Field({
-    label,
-    icon,
-    placeholder,
-    value,
-    onChangeText,
-    keyboardType,
+  label,
+  icon,
+  placeholder,
+  value,
+  onChangeText,
+  keyboardType,
 }) {
-    return (
-        <View style={styles.field}>
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
 
-            <Text style={styles.fieldLabel}>
-                {label}
-            </Text>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor="#999999"
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType={keyboardType}
+          textAlign="right"
+        />
 
-            <View style={styles.inputContainer}>
-
-                <TextInput
-                    style={styles.input}
-                    placeholder={placeholder}
-                    placeholderTextColor="#999999"
-                    value={value}
-                    onChangeText={onChangeText}
-                    keyboardType={keyboardType}
-                    textAlign="right"
-                />
-
-                {icon && (
-                    <Ionicons
-                        name={icon}
-                        size={19}
-                        color="#E4A0A7"
-                    />
-                )}
-
-            </View>
-
-        </View>
-    );
+        {icon && <Ionicons name={icon} size={19} color="#E4A0A7" />}
+      </View>
+    </View>
+  );
 }
-
 
 // ======================================================
 // STYLES
 // ======================================================
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: RED,
+  },
 
-    container: {
-        flex: 1,
-        backgroundColor: RED,
+  keyboard: {
+    flex: 1,
+  },
+
+  background: {
+    position: "absolute",
+
+    top: 0,
+    left: 0,
+    right: 0,
+
+    height: 230,
+
+    backgroundColor: RED,
+
+    overflow: "hidden",
+  },
+
+  circle1: {
+    position: "absolute",
+
+    width: 350,
+    height: 350,
+
+    borderRadius: 175,
+
+    backgroundColor: "#D91F3A",
+
+    opacity: 0.3,
+
+    top: -200,
+    right: -100,
+  },
+
+  circle2: {
+    position: "absolute",
+
+    width: 280,
+    height: 280,
+
+    borderRadius: 140,
+
+    backgroundColor: "#FF6372",
+
+    opacity: 0.2,
+
+    top: 30,
+    left: -150,
+  },
+
+  scrollContent: {
+    paddingTop: 105,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+
+  card: {
+    backgroundColor: "#FFFFFF",
+
+    borderTopLeftRadius: 38,
+    borderTopRightRadius: 38,
+
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 25,
+
+    minHeight: 680,
+
+    alignItems: "center",
+  },
+
+  topIcon: {
+    width: 66,
+    height: 66,
+
+    borderRadius: 33,
+
+    backgroundColor: "#FFFFFF",
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    marginTop: -48,
+
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
 
-    keyboard: {
-        flex: 1,
-    },
+    elevation: 4,
+  },
 
-    background: {
-        position: "absolute",
+  teacherEmoji: {
+    fontSize: 40,
+  },
 
-        top: 0,
-        left: 0,
-        right: 0,
+  title: {
+    fontSize: 24,
 
-        height: 230,
+    fontWeight: "800",
 
-        backgroundColor: RED,
+    color: "#222222",
 
-        overflow: "hidden",
-    },
+    marginTop: 7,
 
-    circle1: {
-        position: "absolute",
+    textAlign: "center",
 
-        width: 350,
-        height: 350,
+    writingDirection: "rtl",
+  },
 
-        borderRadius: 175,
+  profileTitle: {
+    fontSize: 24,
 
-        backgroundColor: "#D91F3A",
+    fontWeight: "800",
 
-        opacity: 0.3,
+    color: "#222222",
 
-        top: -200,
-        right: -100,
-    },
+    textAlign: "center",
 
-    circle2: {
-        position: "absolute",
+    writingDirection: "rtl",
+  },
 
-        width: 280,
-        height: 280,
+  introText: {
+    fontSize: 14,
 
-        borderRadius: 140,
+    color: "#333333",
 
-        backgroundColor: "#FF6372",
+    fontWeight: "600",
 
-        opacity: 0.2,
+    marginTop: 3,
+    marginBottom: 10,
 
-        top: 30,
-        left: -150,
-    },
+    textAlign: "right",
 
-    scrollContent: {
-        paddingTop: 105,
-        paddingHorizontal: 20,
-        paddingBottom: 30,
-    },
+    width: "100%",
 
-    card: {
-        backgroundColor: "#FFFFFF",
+    writingDirection: "rtl",
+  },
 
-        borderTopLeftRadius: 38,
-        borderTopRightRadius: 38,
+  field: {
+    width: "100%",
 
-        paddingHorizontal: 20,
-        paddingTop: 15,
-        paddingBottom: 25,
+    marginBottom: 7,
+  },
 
-        minHeight: 680,
+  fieldLabel: {
+    width: "100%",
 
-        alignItems: "center",
-    },
+    fontSize: 14,
 
-    topIcon: {
-        width: 66,
-        height: 66,
+    fontWeight: "700",
 
-        borderRadius: 33,
+    color: "#222222",
 
-        backgroundColor: "#FFFFFF",
+    marginBottom: 4,
 
-        justifyContent: "center",
-        alignItems: "center",
+    textAlign: "right",
 
-        marginTop: -48,
+    writingDirection: "rtl",
+  },
 
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
+  inputContainer: {
+    width: "100%",
 
-        elevation: 4,
-    },
+    minHeight: 40,
 
-    teacherEmoji: {
-        fontSize: 40,
-    },
+    borderWidth: 1,
 
-    title: {
-        fontSize: 24,
+    borderColor: "#E8C3C7",
 
-        fontWeight: "800",
+    borderRadius: 8,
 
-        color: "#222222",
+    backgroundColor: "#FFFDFD",
 
-        marginTop: 7,
+    flexDirection: "row",
 
-        textAlign: "center",
+    alignItems: "center",
 
-        writingDirection: "rtl",
-    },
+    paddingHorizontal: 10,
+  },
 
-    profileTitle: {
-        fontSize: 24,
+  input: {
+    flex: 1,
 
-        fontWeight: "800",
+    height: 40,
 
-        color: "#222222",
+    fontSize: 13,
 
-        textAlign: "center",
+    color: "#333333",
 
-        writingDirection: "rtl",
-    },
+    writingDirection: "rtl",
+  },
 
-    introText: {
-        fontSize: 14,
+  // =========================
+  // CV
+  // =========================
 
-        color: "#333333",
+  cvContainer: {
+    width: "100%",
 
-        fontWeight: "600",
+    minHeight: 40,
 
-        marginTop: 3,
-        marginBottom: 10,
+    borderWidth: 1,
 
-        textAlign: "right",
+    borderColor: "#E8C3C7",
 
-        width: "100%",
+    borderRadius: 8,
 
-        writingDirection: "rtl",
-    },
+    backgroundColor: "#FFFDFD",
 
-    field: {
-        width: "100%",
+    flexDirection: "row",
 
-        marginBottom: 7,
-    },
+    alignItems: "center",
 
-    fieldLabel: {
-        width: "100%",
+    paddingHorizontal: 10,
+  },
 
-        fontSize: 14,
+  cvText: {
+    flex: 1,
 
-        fontWeight: "700",
+    marginLeft: 8,
 
-        color: "#222222",
+    fontSize: 12,
 
-        marginBottom: 4,
+    color: "#555555",
 
-        textAlign: "right",
+    textAlign: "right",
 
-        writingDirection: "rtl",
-    },
+    writingDirection: "rtl",
+  },
 
-    inputContainer: {
-        width: "100%",
+  cvPlaceholder: {
+    color: "#999999",
+  },
 
-        minHeight: 40,
+  // =========================
+  // Submit
+  // =========================
 
-        borderWidth: 1,
+  submitButton: {
+    width: "80%",
 
-        borderColor: "#E8C3C7",
+    height: 47,
 
-        borderRadius: 8,
+    backgroundColor: RED,
 
-        backgroundColor: "#FFFDFD",
+    borderRadius: 24,
 
-        flexDirection: "row",
+    marginTop: 10,
 
-        alignItems: "center",
+    flexDirection: "row",
 
-        paddingHorizontal: 10,
-    },
+    alignItems: "center",
 
-    input: {
-        flex: 1,
+    justifyContent: "center",
 
-        height: 40,
+    gap: 8,
+  },
 
-        fontSize: 13,
+  submitText: {
+    color: "#FFFFFF",
 
-        color: "#333333",
+    fontSize: 16,
 
-        writingDirection: "rtl",
-    },
+    fontWeight: "700",
 
-    // =========================
-    // CV
-    // =========================
+    writingDirection: "rtl",
+  },
 
-    cvContainer: {
-        width: "100%",
+  skipText: {
+    fontSize: 13,
 
-        minHeight: 40,
+    color: "#E69BA3",
 
-        borderWidth: 1,
+    marginTop: 8,
 
-        borderColor: "#E8C3C7",
+    writingDirection: "rtl",
+  },
 
-        borderRadius: 8,
+  // =========================
+  // Admin information
+  // =========================
 
-        backgroundColor: "#FFFDFD",
+  infoBox: {
+    width: "100%",
 
-        flexDirection: "row",
+    flexDirection: "row",
 
-        alignItems: "center",
+    alignItems: "center",
 
-        paddingHorizontal: 10,
-    },
+    backgroundColor: "#FFF3F4",
 
-    cvText: {
-        flex: 1,
+    borderRadius: 10,
 
-        marginLeft: 8,
+    padding: 10,
 
-        fontSize: 12,
+    marginTop: 15,
+  },
 
-        color: "#555555",
+  infoText: {
+    flex: 1,
 
-        textAlign: "right",
+    fontSize: 11,
 
-        writingDirection: "rtl",
-    },
+    color: "#777777",
 
-    cvPlaceholder: {
-        color: "#999999",
-    },
+    marginLeft: 7,
 
-    // =========================
-    // Submit
-    // =========================
+    textAlign: "right",
 
-    submitButton: {
-        width: "80%",
-
-        height: 47,
-
-        backgroundColor: RED,
-
-        borderRadius: 24,
-
-        marginTop: 10,
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        justifyContent: "center",
-
-        gap: 8,
-    },
-
-    submitText: {
-        color: "#FFFFFF",
-
-        fontSize: 16,
-
-        fontWeight: "700",
-
-        writingDirection: "rtl",
-    },
-
-    skipText: {
-        fontSize: 13,
-
-        color: "#E69BA3",
-
-        marginTop: 8,
-
-        writingDirection: "rtl",
-    },
-
-    // =========================
-    // Admin information
-    // =========================
-
-    infoBox: {
-        width: "100%",
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        backgroundColor: "#FFF3F4",
-
-        borderRadius: 10,
-
-        padding: 10,
-
-        marginTop: 15,
-    },
-
-    infoText: {
-        flex: 1,
-
-        fontSize: 11,
-
-        color: "#777777",
-
-        marginLeft: 7,
-
-        textAlign: "right",
-
-        writingDirection: "rtl",
-    },
+    writingDirection: "rtl",
+  },
 });
