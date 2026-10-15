@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +14,6 @@ import {
 } from "react-native";
 
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
-
 import Routes from "../../constants/routes";
 import { useAuth } from "../../context/AuthContext";
 
@@ -34,21 +34,35 @@ export default function LoginScreen({ navigation }) {
   // LOGIN
   // ==============================
 
-  const handleLogin = () => {
-    console.log("Email :", email);
-    console.log("Password :", password);
-    console.log("Remember :", rememberMe);
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert(
+        "Champs obligatoires",
+        "Veuillez saisir votre e-mail et votre mot de passe.",
+      );
+      return;
+    }
 
-    // Fake login pour le moment
-    login(
-      {
-        id: 1,
-        name: "Mohamed",
-        email: email || "mohamed@gmail.com",
-        role: "ADMIN",
-      },
-      "fake-jwt-token",
-    );
+    try {
+      console.log("🔐 Connexion en cours...");
+      console.log("📧 Email :", email.trim().toLowerCase());
+
+      // Transmettre deux chaînes, pas un objet utilisateur
+      const { data, error } = await login(email, password);
+
+      if (error) {
+        Alert.alert("Échec de connexion", error.message);
+        return;
+      }
+
+      console.log("✅ Utilisateur connecté :", data.user?.id);
+
+      // La navigation sera mise à jour par AuthContext
+      // lorsque AppNavigator dépend correctement de user.
+    } catch (error) {
+      console.error("Erreur login :", error.message);
+      Alert.alert("Erreur", "Une erreur est survenue pendant la connexion.");
+    }
   };
 
   // ==============================

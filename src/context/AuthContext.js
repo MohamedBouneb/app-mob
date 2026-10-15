@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-
 import { supabase } from "../lib/supabase";
-
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -9,7 +7,29 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentUser();
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Erreur récupération session :", error.message);
+        }
+
+        if (mounted) {
+          setUser(data?.session?.user ?? null);
+        }
+      } catch (error) {
+        console.error("Erreur initialisation Auth :", error.message);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
 
     const {
       data: { subscription },
@@ -18,48 +38,58 @@ export function AuthProvider({ children }) {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  const getCurrentUser = async () => {
+  const login = async (email, password) => {
+    // Vérifier les données avant d'appeler Supabase
+    if (typeof email !== "string" || typeof password !== "string") {
+      return {
+        data: null,
+        error: new Error("L'e-mail ou le mot de passe est invalide."),
+      };
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return {
+        data: null,
+        error: new Error("Veuillez saisir votre e-mail et votre mot de passe."),
+      };
+    }
+
     try {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      console.log("🔐 Tentative de connexion Supabase...");
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
 
       if (error) {
-        console.error("Erreur récupération session :", error);
+        console.error("❌ Erreur de connexion :", error.message);
+        return { data: null, error };
       }
 
-      setUser(session?.user ?? null);
+      console.log("✅ Connexion réussie :", data.user?.id);
+
+      setUser(data.user);
+
+      return { data, error: null };
     } catch (error) {
-      console.error("Erreur AuthContext :", error);
-    } finally {
-      setLoading(false);
+      console.error("❌ Erreur inattendue :", error.message);
+      return { data: null, error };
     }
-  };
-
-  const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    setUser(data.user);
-
-    return data.user;
   };
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
+      console.error("Erreur déconnexion :", error.message);
       throw error;
     }
 
@@ -67,14 +97,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

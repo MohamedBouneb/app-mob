@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   Alert,
@@ -13,8 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { Ionicons } from "@expo/vector-icons";
+import Routes from "../../constants/routes";
 import { supabase } from "../../lib/supabase";
 const RED = "#F52F46";
 
@@ -86,6 +86,21 @@ export default function ParentRegisterScreen({ navigation, route }) {
           },
         },
       });
+
+      if (error) {
+        Alert.alert("Erreur", error.message);
+        return;
+      }
+
+      if (!data.session) {
+        Alert.alert(
+          "Inscription réussie",
+          "Veuillez confirmer votre adresse email avant de vous connecter.",
+        );
+
+        navigation.navigate(Routes.LOGIN);
+        return;
+      }
 
       if (error) {
         console.error("❌ Erreur Supabase Auth :", error);
