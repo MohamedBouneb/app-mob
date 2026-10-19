@@ -70,7 +70,12 @@ export function AuthProvider({ children }) {
       });
 
       if (error) {
-        console.error("❌ Erreur de connexion :", error.message);
+        console.error("❌ Erreur de connexion :", {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+        });
+
         return { data: null, error };
       }
 

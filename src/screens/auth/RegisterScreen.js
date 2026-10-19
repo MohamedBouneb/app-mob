@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -34,6 +35,13 @@ export default function RegisterScreen({ navigation }) {
   // =========================
   // Retour Login
   // =========================
+  const showMessage = (title, message) => {
+    if (Platform.OS === "web") {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
 
   const goToLogin = () => {
     navigation.navigate(Routes.LOGIN);

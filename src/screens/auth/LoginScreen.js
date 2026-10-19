@@ -30,38 +30,100 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  const [loading, setLoading] = useState(false);
+
   // ==============================
   // LOGIN
-  // ==============================
+  // ====
+
+  const showMessage = (title, message) => {
+    if (Platform.OS === "web") {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const isValidEmail = (value) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  };
+
+  const getArabicAuthError = (message = "") => {
+    const error = message.toLowerCase();
+
+    if (
+      error.includes("invalid login credentials") ||
+      error.includes("invalid_credentials")
+    ) {
+      return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+    }
+
+    if (
+      error.includes("email not confirmed") ||
+      error.includes("email_not_confirmed")
+    ) {
+      return "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.";
+    }
+
+    if (error.includes("too many requests") || error.includes("rate limit")) {
+      return "لقد تجاوزت عدد المحاولات المسموح بها. يرجى الانتظار ثم المحاولة مجدداً.";
+    }
+
+    if (
+      error.includes("failed to fetch") ||
+      error.includes("network") ||
+      error.includes("fetch")
+    ) {
+      return "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.";
+    }
+
+    return "تعذر تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى.";
+  };
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      Alert.alert(
-        "Champs obligatoires",
-        "Veuillez saisir votre e-mail et votre mot de passe.",
-      );
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Vérifier les champs obligatoires
+    if (!cleanEmail || !password) {
+      showMessage("حقول مطلوبة", "يرجى إدخال البريد الإلكتروني وكلمة المرور.");
       return;
     }
 
-    try {
-      console.log("🔐 Connexion en cours...");
-      console.log("📧 Email :", email.trim().toLowerCase());
+    // 2. Vérifier le format de l'email
+    if (!isValidEmail(cleanEmail)) {
+      showMessage("بريد إلكتروني غير صالح", "يرجى إدخال بريد إلكتروني صحيح.");
+      return;
+    }
 
-      // Transmettre deux chaînes, pas un objet utilisateur
-      const { data, error } = await login(email, password);
+    // 3. Éviter plusieurs connexions simultanées
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await login(cleanEmail, password);
 
       if (error) {
-        Alert.alert("Échec de connexion", error.message);
+        showMessage("فشل تسجيل الدخول", getArabicAuthError(error.message));
         return;
       }
 
-      console.log("✅ Utilisateur connecté :", data.user?.id);
+      if (!data?.user) {
+        showMessage(
+          "خطأ",
+          "لم يتم العثور على بيانات المستخدم. يرجى المحاولة مجدداً.",
+        );
+        return;
+      }
 
-      // La navigation sera mise à jour par AuthContext
-      // lorsque AppNavigator dépend correctement de user.
+      // La navigation dépend de AppNavigator/AuthContext.
+      // Ne pas naviguer manuellement ici.
     } catch (error) {
-      console.error("Erreur login :", error.message);
-      Alert.alert("Erreur", "Une erreur est survenue pendant la connexion.");
+      console.error("Login error:", error?.message);
+
+      showMessage("خطأ", getArabicAuthError(error?.message));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -265,13 +327,17 @@ export default function LoginScreen({ navigation }) {
                     ============================== */}
 
           <TouchableOpacity
-            style={styles.loginButton}
+            style={[styles.loginButton, loading && { opacity: 0.65 }]}
             onPress={handleLogin}
             activeOpacity={0.8}
+            disabled={loading}
+            accessibilityRole="button"
           >
             <View style={styles.loginCircle} />
 
-            <Text style={styles.loginButtonText}>تسجيل الدخول</Text>
+            <Text style={styles.loginButtonText}>
+              {loading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
+            </Text>
 
             <View style={styles.loginDecoration} />
           </TouchableOpacity>
