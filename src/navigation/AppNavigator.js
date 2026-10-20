@@ -1,14 +1,16 @@
-import { useState } from "react";
-
 import { NavigationContainer } from "@react-navigation/native";
+import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
-
 import AuthNavigator from "./AuthNavigator";
 
 import SplashScreen from "../screens/splash/SplashScreen";
 import WelcomeScreen from "../screens/welcome/WelcomeScreen";
+
+import AdminNavigator from "./AdminNavigator";
+import ParentNavigator from "./ParentNavigator";
+import TeacherNavigator from "./TeacherNavigator";
 
 import Routes from "../constants/routes";
 
@@ -16,14 +18,8 @@ export default function AppNavigator() {
   const { loading, user } = useAuth();
 
   const [splashFinished, setSplashFinished] = useState(false);
-
   const [welcomeFinished, setWelcomeFinished] = useState(false);
-
   const [initialAuthRoute, setInitialAuthRoute] = useState(Routes.LOGIN);
-
-  // =========================
-  // 1. SPLASH SCREEN
-  // =========================
 
   if (!splashFinished) {
     return (
@@ -35,10 +31,6 @@ export default function AppNavigator() {
       />
     );
   }
-
-  // =========================
-  // 2. LOADING AUTH
-  // =========================
 
   if (loading) {
     return (
@@ -54,38 +46,44 @@ export default function AppNavigator() {
     );
   }
 
-  // =========================
-  // 3. WELCOME SCREEN
-  // =========================
-
-  if (!welcomeFinished) {
+  // Un utilisateur déjà connecté passe directement à son espace.
+  // Un nouvel utilisateur voit le WelcomeScreen.
+  if (!user && !welcomeFinished) {
     return (
       <WelcomeScreen
         onLogin={() => {
-          console.log("LOGIN BUTTON");
-
           setInitialAuthRoute(Routes.LOGIN);
-
           setWelcomeFinished(true);
         }}
         onRegister={() => {
-          console.log("REGISTER BUTTON");
-
           setInitialAuthRoute(Routes.REGISTER);
-
           setWelcomeFinished(true);
         }}
       />
     );
   }
 
-  // =========================
-  // 4. AUTH NAVIGATOR
-  // =========================
-
   return (
     <NavigationContainer>
-      <AuthNavigator initialRouteName={initialAuthRoute} />
+      {user ? (
+        (() => {
+          switch (user.role) {
+            case "ADMIN":
+              return <AdminNavigator />;
+
+            case "TEACHER":
+              return <TeacherNavigator />;
+
+            case "PARENT":
+              return <ParentNavigator />;
+
+            default:
+              return <AuthNavigator initialRouteName={Routes.LOGIN} />;
+          }
+        })()
+      ) : (
+        <AuthNavigator initialRouteName={initialAuthRoute} />
+      )}
     </NavigationContainer>
   );
 }

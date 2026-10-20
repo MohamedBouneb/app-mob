@@ -79,11 +79,33 @@ export function AuthProvider({ children }) {
         return { data: null, error };
       }
 
-      console.log("✅ Connexion réussie :", data.user?.id);
+      const { data: profile, error: profileError } = await supabase
+        .from("users")
+        .select("id, first_name, last_name, email, role, status")
+        .eq("id", data.user.id)
+        .single();
 
-      setUser(data.user);
+      if (profileError) {
+        console.error("Erreur récupération profil :", profileError.message);
 
-      return { data, error: null };
+        return {
+          data: null,
+          error: new Error("Impossible de récupérer le profil utilisateur."),
+        };
+      }
+
+      const authenticatedUser = {
+        ...data.user,
+        ...profile,
+      };
+
+      setUser(authenticatedUser);
+
+      console.log("✅ Connexion réussie :", authenticatedUser.id);
+      console.log("👤 Rôle :", authenticatedUser.role);
+
+      return { data: { ...data, profile }, error: null };
+
     } catch (error) {
       console.error("❌ Erreur inattendue :", error.message);
       return { data: null, error };
