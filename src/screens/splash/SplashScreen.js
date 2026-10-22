@@ -1,428 +1,285 @@
-import React, {
-    useEffect,
-    useRef,
-    useState
-} from "react";
+import { useEffect, useRef, useState } from "react";
 
-import {
-    View,
-    Text,
-    Image,
-    StyleSheet,
-    PanResponder,
-} from "react-native";
-
+import { Image, PanResponder, StyleSheet, Text, View } from "react-native";
 
 const slides = [
+  {
+    title: "مرحبا ...",
 
-    {
-        title: "مرحبا ...",
+    description: "نرحب بأطفالكم في روضة المستقبل، الواقعة بمدينة مساكن.",
 
-        description:
-            "نرحب بأطفالكم في روضة المستقبل، الواقعة بمدينة مساكن.",
+    character: require("../../assets/images/splash/child-1.png"),
+  },
 
-        character:
-            require("../../assets/images/splash/child-1.png"),
-    },
+  {
+    title: "تحميل ...",
 
-    {
-        title: "تحميل ...",
+    description: "تُعدّ هذه الروضة من أبرز رياض الأطفال في مدينة مساكن",
 
-        description:
-            "تُعدّ هذه الروضة من أبرز رياض الأطفال في مدينة مساكن",
+    character: require("../../assets/images/splash/child-2.png"),
+  },
 
-        character:
-            require("../../assets/images/splash/child-2.png"),
-    },
+  {
+    title: "مرحبا ...",
 
-    {
-        title: "مرحبا ...",
+    description:
+      "الروضة هي محطة شحن صغيرة للأرواح الصغيرة قبل انطلاقها في الحياة",
 
-        description:
-            "الروضة هي محطة شحن صغيرة للأرواح الصغيرة قبل انطلاقها في الحياة",
-
-        character:
-            require("../../assets/images/splash/child-3.png"),
-    },
-
+    character: require("../../assets/images/splash/child-3.png"),
+  },
 ];
 
-
 export default function SplashScreen({ onFinish }) {
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-    const [currentSlide, setCurrentSlide] = useState(0);
+  const currentSlideRef = useRef(0);
 
-    const currentSlideRef = useRef(0);
+  // ==========================================
+  // CHANGER DE SLIDE AUTOMATIQUEMENT
+  // ==========================================
 
+  useEffect(() => {
+    console.log("📱 Slide actuel:", currentSlide);
 
-    // ==========================================
-    // CHANGER DE SLIDE AUTOMATIQUEMENT
-    // ==========================================
+    const timer = setTimeout(() => {
+      // Il reste des slides
+      if (currentSlide < slides.length - 1) {
+        const nextSlide = currentSlide + 1;
 
-    useEffect(() => {
+        console.log("➡️ Passage au slide:", nextSlide);
 
-        console.log(
-            "📱 Slide actuel:",
-            currentSlide
-        );
+        currentSlideRef.current = nextSlide;
 
+        setCurrentSlide(nextSlide);
+      }
 
-        const timer = setTimeout(() => {
+      // Dernier slide
+      else {
+        console.log("✅ Dernier slide terminé");
 
-            // Il reste des slides
-            if (currentSlide < slides.length - 1) {
+        console.log("➡️ Passage vers WelcomeScreen");
 
-                const nextSlide = currentSlide + 1;
+        onFinish();
+      }
+    }, 2000);
 
-                console.log(
-                    "➡️ Passage au slide:",
-                    nextSlide
-                );
+    return () => clearTimeout(timer);
+  }, [currentSlide]);
 
-                currentSlideRef.current = nextSlide;
+  // ==========================================
+  // SLIDE SUIVANT
+  // ==========================================
 
-                setCurrentSlide(nextSlide);
+  const goToNextSlide = () => {
+    if (currentSlideRef.current < slides.length - 1) {
+      const nextSlide = currentSlideRef.current + 1;
 
-            }
+      currentSlideRef.current = nextSlide;
 
-            // Dernier slide
-            else {
+      setCurrentSlide(nextSlide);
+    }
+  };
 
-                console.log(
-                    "✅ Dernier slide terminé"
-                );
+  // ==========================================
+  // SLIDE PRÉCÉDENT
+  // ==========================================
 
-                console.log(
-                    "➡️ Passage vers WelcomeScreen"
-                );
+  const goToPreviousSlide = () => {
+    if (currentSlideRef.current > 0) {
+      const previousSlide = currentSlideRef.current - 1;
 
-                onFinish();
+      currentSlideRef.current = previousSlide;
 
-            }
+      setCurrentSlide(previousSlide);
+    }
+  };
 
-        }, 2000);
+  // ==========================================
+  // SWIPE
+  // ==========================================
 
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 20;
+      },
 
-        return () => clearTimeout(timer);
+      onPanResponderRelease: (_, gestureState) => {
+        const threshold = 50;
 
-    }, [currentSlide]);
-
-
-    // ==========================================
-    // SLIDE SUIVANT
-    // ==========================================
-
-    const goToNextSlide = () => {
-
-        if (currentSlideRef.current < slides.length - 1) {
-
-            const nextSlide =
-                currentSlideRef.current + 1;
-
-            currentSlideRef.current = nextSlide;
-
-            setCurrentSlide(nextSlide);
-
+        // Swipe gauche
+        if (gestureState.dx < -threshold) {
+          goToNextSlide();
         }
 
-    };
-
-
-    // ==========================================
-    // SLIDE PRÉCÉDENT
-    // ==========================================
-
-    const goToPreviousSlide = () => {
-
-        if (currentSlideRef.current > 0) {
-
-            const previousSlide =
-                currentSlideRef.current - 1;
-
-            currentSlideRef.current = previousSlide;
-
-            setCurrentSlide(previousSlide);
-
+        // Swipe droit
+        else if (gestureState.dx > threshold) {
+          goToPreviousSlide();
         }
+      },
+    }),
+  ).current;
 
-    };
+  const slide = slides[currentSlide];
 
+  return (
+    <View style={styles.container} {...panResponder.panHandlers}>
+      {/* LOGO */}
 
-    // ==========================================
-    // SWIPE
-    // ==========================================
+      <Image
+        source={require("../../assets/images/logo-jardin.png")}
+        style={styles.logo}
+        resizeMode="contain"
+      />
 
-    const panResponder = useRef(
+      {/* TITRE */}
 
-        PanResponder.create({
+      <Text style={styles.title}>{slide.title}</Text>
 
-            onMoveShouldSetPanResponder: (
-                _,
-                gestureState
-            ) => {
+      {/* DESCRIPTION */}
 
-                return Math.abs(
-                    gestureState.dx
-                ) > 20;
+      <View style={styles.descriptionBox}>
+        <Text style={styles.description}>{slide.description}</Text>
 
-            },
+        {/* PERSONNAGE */}
 
+        <Image
+          source={slide.character}
+          style={styles.character}
+          resizeMode="contain"
+        />
+      </View>
 
-            onPanResponderRelease: (
-                _,
-                gestureState
-            ) => {
+      {/* DOTS */}
 
-                const threshold = 50;
+      <View style={styles.dotsContainer}>
+        {slides.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.dot,
 
-
-                // Swipe gauche
-                if (
-                    gestureState.dx <
-                    -threshold
-                ) {
-
-                    goToNextSlide();
-
-                }
-
-
-                // Swipe droit
-                else if (
-                    gestureState.dx >
-                    threshold
-                ) {
-
-                    goToPreviousSlide();
-
-                }
-
-            },
-
-        })
-
-    ).current;
-
-
-    const slide = slides[currentSlide];
-
-
-    return (
-
-        <View
-            style={styles.container}
-            {...panResponder.panHandlers}
-        >
-
-            {/* LOGO */}
-
-            <Image
-                source={require(
-                    "../../assets/images/logo-jardin.png"
-                )}
-                style={styles.logo}
-                resizeMode="contain"
-            />
-
-
-            {/* TITRE */}
-
-            <Text style={styles.title}>
-                {slide.title}
-            </Text>
-
-
-            {/* DESCRIPTION */}
-
-            <View style={styles.descriptionBox}>
-
-                <Text style={styles.description}>
-                    {slide.description}
-                </Text>
-
-
-                {/* PERSONNAGE */}
-
-                <Image
-                    source={slide.character}
-                    style={styles.character}
-                    resizeMode="contain"
-                />
-
-            </View>
-
-
-            {/* DOTS */}
-
-            <View style={styles.dotsContainer}>
-
-                {slides.map((_, index) => (
-
-                    <View
-                        key={index}
-                        style={[
-                            styles.dot,
-
-                            index === currentSlide
-                                ? styles.activeDot
-                                : styles.inactiveDot
-                        ]}
-                    />
-
-                ))}
-
-            </View>
-
-        </View>
-
-    );
-
+              index === currentSlide ? styles.activeDot : styles.inactiveDot,
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
 }
 
-
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
 
-    container: {
+    backgroundColor: "#F52F46",
 
-        flex: 1,
+    alignItems: "center",
 
-        backgroundColor: "#F52F46",
+    paddingHorizontal: 20,
 
-        alignItems: "center",
+    paddingTop: 70,
+  },
 
-        paddingHorizontal: 20,
+  logo: {
+    width: 590,
 
-        paddingTop: 70,
+    height: 400,
 
-    },
+    marginTop: 80,
+  },
 
+  title: {
+    color: "#FFFFFF",
 
-    logo: {
+    fontSize: 28,
 
-        width: 220,
+    fontWeight: "400",
 
-        height: 220,
+    marginTop: 35,
 
-        marginTop: 80,
+    textAlign: "center",
 
-    },
+    writingDirection: "rtl",
+  },
 
+  descriptionBox: {
+    width: "92%",
 
-    title: {
+    minHeight: 75,
 
-        color: "#FFFFFF",
+    backgroundColor: "#FFFFFF",
 
-        fontSize: 28,
+    borderRadius: 18,
 
-        fontWeight: "400",
+    marginTop: "auto",
 
-        marginTop: 35,
+    marginBottom: 30,
 
-        textAlign: "center",
+    paddingHorizontal: 20,
 
-        writingDirection: "rtl",
+    paddingVertical: 15,
 
-    },
+    justifyContent: "center",
 
+    alignItems: "center",
 
-    descriptionBox: {
+    position: "relative",
+  },
 
-        width: "92%",
+  description: {
+    color: "#E85A24",
 
-        minHeight: 75,
+    fontSize: 14,
 
-        backgroundColor: "#FFFFFF",
+    lineHeight: 21,
 
-        borderRadius: 18,
+    textAlign: "center",
 
-        marginTop: "auto",
+    writingDirection: "rtl",
 
-        marginBottom: 30,
+    paddingHorizontal: 10,
+  },
 
-        paddingHorizontal: 20,
+  character: {
+    position: "absolute",
 
-        paddingVertical: 15,
+    right: -5,
 
-        justifyContent: "center",
+    bottom: -10,
 
-        alignItems: "center",
+    width: 80,
 
-        position: "relative",
+    height: 90,
+  },
 
-    },
+  dotsContainer: {
+    flexDirection: "row",
 
+    justifyContent: "center",
 
-    description: {
+    alignItems: "center",
 
-        color: "#E85A24",
+    gap: 5,
 
-        fontSize: 14,
+    marginBottom: 20,
+  },
 
-        lineHeight: 21,
+  dot: {
+    height: 7,
 
-        textAlign: "center",
+    borderRadius: 10,
+  },
 
-        writingDirection: "rtl",
+  activeDot: {
+    width: 24,
 
-        paddingHorizontal: 10,
+    backgroundColor: "#FFD83D",
+  },
 
-    },
+  inactiveDot: {
+    width: 10,
 
-
-    character: {
-
-        position: "absolute",
-
-        right: -5,
-
-        bottom: -10,
-
-        width: 80,
-
-        height: 90,
-
-    },
-
-
-    dotsContainer: {
-
-        flexDirection: "row",
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
-        gap: 5,
-
-        marginBottom: 20,
-
-    },
-
-
-    dot: {
-
-        height: 7,
-
-        borderRadius: 10,
-
-    },
-
-
-    activeDot: {
-
-        width: 24,
-
-        backgroundColor: "#FFD83D",
-
-    },
-
-
-    inactiveDot: {
-
-        width: 10,
-
-        backgroundColor: "#FFFFFF",
-
-    },
-
+    backgroundColor: "#FFFFFF",
+  },
 });

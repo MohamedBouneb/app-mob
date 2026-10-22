@@ -1,10 +1,10 @@
 import {
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -34,8 +34,25 @@ export default function RoleSelectionScreen({ navigation, route }) {
   // ==========================================
 
   const handleTeacher = () => {
+    const data = route?.params?.registrationData;
+
+    console.log("➡️ Données envoyées vers TeacherRegister :", {
+      fullName: data?.fullName,
+      email: data?.email,
+      phone: data?.phone,
+      hasPassword: Boolean(data?.password),
+    });
+
+    if (!data?.email || !data?.password) {
+      Alert.alert(
+        "Erreur",
+        "Les données du formulaire d'inscription sont manquantes.",
+      );
+      return;
+    }
+
     navigation.navigate(Routes.TEACHER_REGISTER, {
-      registrationData: route.params?.registrationData,
+      registrationData: data,
     });
   };
 

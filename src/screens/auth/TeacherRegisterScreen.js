@@ -1,30 +1,40 @@
 import { useState } from "react";
 
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import { supabase } from "../../lib/supabase";
 
 const RED = "#F52F46";
 
-export default function TeacherRegisterScreen({ navigation }) {
+export default function TeacherRegisterScreen({ navigation, route }) {
+  const registrationData = route?.params?.registrationData;
+
+  console.log("Received registrationData:", {
+    fullName: registrationData?.fullName,
+    email: registrationData?.email,
+    phone: registrationData?.phone,
+    password: registrationData?.password,
+  });
+  // Tes états existants restent ici :
   const [address, setAddress] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [diploma, setDiploma] = useState("");
   const [experience, setExperience] = useState("");
-
+  const [saving, setSaving] = useState(false);
   const [cv, setCv] = useState(null);
 
   // =========================
@@ -63,44 +73,155 @@ export default function TeacherRegisterScreen({ navigation }) {
   // Submit
   // =========================
 
-  const handleSubmit = () => {
-    if (!address || !birthDate || !diploma || !experience) {
-      Alert.alert("تنبيه", "يرجى ملء جميع المعلومات المطلوبة");
+  const handleSubmit = async () => {
+    if (saving) return;
 
+    if (!registrationData?.email || !registrationData?.password) {
+      Alert.alert(
+        "Erreur",
+        "Les informations du premier formulaire sont manquantes. Recommencez l'inscription.",
+      );
       return;
     }
 
-    console.log("Teacher data:", {
-      address,
-      birthDate,
-      diploma,
-      experience,
-      cv,
-    });
+    const cleanAddress = address.trim();
+    const cleanBirthDate = birthDate.trim();
+    const cleanDiploma = diploma.trim();
+    const normalizedExperience = experience.trim().replace(/^\+/, "");
 
-    console.log(
-      "📄 Informations du CV :",
-      cv
-        ? {
-            name: cv.name,
-            mimeType: cv.mimeType,
-            size: cv.size,
-            uri: cv.uri,
-          }
-        : null,
-    );
+    if (
+      !cleanAddress ||
+      !cleanBirthDate ||
+      !cleanDiploma ||
+      !normalizedExperience
+    ) {
+      Alert.alert("تنبيه", "يرجى ملء جميع المعلومات المطلوبة");
+      return;
+    }
 
-    console.log("👩‍🏫 Informations animatrice :", {
-      address,
-      birthDate,
-      diploma,
-      experience,
-    });
+    if (
+      !/^\d+$/.test(normalizedExperience) ||
+      Number(normalizedExperience) > 60
+    ) {
+      Alert.alert("تنبيه", "يرجى إدخال عدد سنوات خبرة صحيح");
+      return;
+    }
 
-    Alert.alert(
-      "تم الحفظ",
-      "تم حفظ معلوماتك. سيتم مراجعة طلبك من طرف الإدارة.",
-    );
+    const dateMatch = cleanBirthDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+    if (!dateMatch) {
+      Alert.alert("تنبيه", "أدخل تاريخ الميلاد بصيغة يوم/شهر/سنة");
+      return;
+    }
+
+    const [, day, month, year] = dateMatch;
+    const formattedBirthDate = `${year}-${month}-${day}`;
+    const parsedDate = new Date(`${formattedBirthDate}T00:00:00`);
+
+    if (
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate.getFullYear() !== Number(year) ||
+      parsedDate.getMonth() + 1 !== Number(month) ||
+      parsedDate.getDate() !== Number(day)
+    ) {
+      Alert.alert("تنبيه", "تاريخ الميلاد غير صحيح");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const { fullName, email, phone, password } = registrationData;
+      const nameParts = fullName.trim().split(/\s+/);
+      const firstName = nameParts.shift() || "";
+      const lastName = nameParts.join(" ");
+
+      // 1. Créer le compte Supabase Auth
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              phone,
+              role: "TEACHER",
+            },
+          },
+        });
+
+      if (signUpError) throw signUpError;
+
+      const user = signUpData.user;
+
+      if (!user) {
+        throw new Error("Supabase n'a retourné aucun utilisateur.");
+      }
+
+      // Sans session, les écritures protégées par RLS ne peuvent
+      // généralement pas être effectuées depuis cette page.
+      if (!signUpData.session) {
+        Alert.alert(
+          "Confirmation requise",
+          "Le compte a été créé. Confirmez votre adresse e-mail, puis connectez-vous pour terminer votre inscription.",
+        );
+        return;
+      }
+
+      // 2. Créer ou actualiser le profil principal.
+      // Si un trigger crée déjà cette ligne, vérifiez que les
+      // colonnes et les règles RLS permettent cet upsert.
+      const { error: userError } = await supabase.from("users").upsert(
+        {
+          id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          email: email.toLowerCase(),
+          phone,
+          role: "TEACHER",
+          status: "PENDING",
+        },
+        { onConflict: "id" },
+      );
+
+      if (userError) throw userError;
+
+      // 3. Enregistrer les informations complémentaires.
+      const { error: profileError } = await supabase
+        .from("teacher_profiles")
+        .upsert(
+          {
+            user_id: user.id,
+            address: cleanAddress,
+            birth_date: formattedBirthDate,
+            diploma: cleanDiploma,
+            experience_years: Number(normalizedExperience),
+            status: "PENDING",
+          },
+          { onConflict: "user_id" },
+        );
+
+      if (profileError) throw profileError;
+
+      Alert.alert(
+        "تم استلام طلب التسجيل",
+        "تم إنشاء الحساب وحفظ معلوماتك بنجاح. طلبك الآن قيد المراجعة من طرف الإدارة.",
+      );
+    } catch (error) {
+      console.error("Erreur inscription animatrice :", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+      });
+
+      Alert.alert(
+        "تعذر إكمال التسجيل",
+        error.message || "حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -225,13 +346,18 @@ export default function TeacherRegisterScreen({ navigation }) {
                         ========================= */}
 
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[styles.submitButton, saving && { opacity: 0.6 }]}
               onPress={handleSubmit}
+              disabled={saving}
               activeOpacity={0.85}
             >
-              <Text style={styles.submitText}>حفظ ومتابعة</Text>
+              <Text style={styles.submitText}>
+                {saving ? "جارٍ الحفظ..." : "حفظ ومتابعة"}
+              </Text>
 
-              <Ionicons name="arrow-forward" size={21} color="#FFFFFF" />
+              {!saving && (
+                <Ionicons name="arrow-forward" size={21} color="#FFFFFF" />
+              )}
             </TouchableOpacity>
 
             {/* =========================

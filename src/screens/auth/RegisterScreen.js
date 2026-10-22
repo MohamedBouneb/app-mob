@@ -52,28 +52,37 @@ export default function RegisterScreen({ navigation }) {
   // =========================
 
   const goToRoleSelection = () => {
-    if (!fullName || !email || !phone || !password) {
-      Alert.alert("تنبيه", "يرجى ملء جميع الحقول");
+    const cleanFullName = fullName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim();
+
+    if (!cleanFullName || !cleanEmail || !cleanPhone || !password) {
+      showMessage("تنبيه", "يرجى ملء جميع الحقول");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(email.trim())) {
-      Alert.alert("خطأ", "يرجى إدخال بريد إلكتروني صحيح");
+    if (!emailRegex.test(cleanEmail)) {
+      showMessage("خطأ", "يرجى إدخال بريد إلكتروني صحيح");
+      return;
+    }
+
+    if (password.length < 6) {
+      showMessage("تنبيه", "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل");
       return;
     }
 
     if (!accepted) {
-      Alert.alert("تنبيه", "يرجى الموافقة على الشروط والأحكام");
+      showMessage("تنبيه", "يرجى الموافقة على الشروط والأحكام");
       return;
     }
 
     navigation.navigate(Routes.ROLE_SELECTION, {
       registrationData: {
-        fullName: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
+        fullName: cleanFullName,
+        email: cleanEmail,
+        phone: cleanPhone,
         password,
       },
     });
