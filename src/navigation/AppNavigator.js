@@ -1,16 +1,16 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
+
+import AdminNavigator from "./AdminNavigator";
 import AuthNavigator from "./AuthNavigator";
+import ParentNavigator from "./ParentNavigator";
+import TeacherNavigator from "./TeacherNavigator";
 
 import SplashScreen from "../screens/splash/SplashScreen";
 import WelcomeScreen from "../screens/welcome/WelcomeScreen";
-
-import AdminNavigator from "./AdminNavigator";
-import ParentNavigator from "./ParentNavigator";
-import TeacherNavigator from "./TeacherNavigator";
 
 import Routes from "../constants/routes";
 
@@ -21,33 +21,27 @@ export default function AppNavigator() {
   const [welcomeFinished, setWelcomeFinished] = useState(false);
   const [initialAuthRoute, setInitialAuthRoute] = useState(Routes.LOGIN);
 
+  // 1. Afficher le splash screen
   if (!splashFinished) {
     return (
       <SplashScreen
         onFinish={() => {
-          console.log("Splash finished");
           setSplashFinished(true);
         }}
       />
     );
   }
 
+  // 2. Attendre la récupération de la session et du profil
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ActivityIndicator size="large" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#F52F46" />
       </View>
     );
   }
 
-  // Un utilisateur déjà connecté passe directement à son espace.
-  // Un nouvel utilisateur voit le WelcomeScreen.
+  // 3. Accueil pour les utilisateurs non connectés
   if (!user && !welcomeFinished) {
     return (
       <WelcomeScreen
@@ -63,27 +57,43 @@ export default function AppNavigator() {
     );
   }
 
+  // 4. Afficher l'espace correspondant au rôle
+  const renderUserNavigator = () => {
+    switch (user?.role) {
+      case "ADMIN":
+        return <AdminNavigator />;
+
+      case "TEACHER":
+        // Le statut APPROVED doit également être vérifié
+        // avant de permettre à l'animatrice d'accéder à son espace.
+        return <TeacherNavigator />;
+
+      case "PARENT":
+        return <ParentNavigator />;
+
+      default:
+        // Profil absent ou rôle inconnu :
+        // ne pas accorder d'accès privilégié.
+        return <AuthNavigator initialRouteName={Routes.LOGIN} />;
+    }
+  };
+
   return (
     <NavigationContainer>
       {user ? (
-        (() => {
-          switch (user.role) {
-            case "ADMIN":
-              return <AdminNavigator />;
-
-            case "TEACHER":
-              return <TeacherNavigator />;
-
-            case "PARENT":
-              return <ParentNavigator />;
-
-            default:
-              return <AuthNavigator initialRouteName={Routes.LOGIN} />;
-          }
-        })()
+        renderUserNavigator()
       ) : (
         <AuthNavigator initialRouteName={initialAuthRoute} />
       )}
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF8F6",
+  },
+});
