@@ -1,11 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
+
 import { supabase } from "../lib/supabase";
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // 1. Initialiser la session Supabase
   useEffect(() => {
     let mounted = true;
 
@@ -13,29 +17,31 @@ export function AuthProvider({ children }) {
       try {
         const { data, error } = await supabase.auth.getSession();
 
-        if (error) {
-          console.error("Erreur récupération session :", error.message);
-        }
+        if (error) throw error;
 
         if (mounted) {
-          setUser(data?.session?.user ?? null);
+          setAuthUser(data.session?.user ?? null);
         }
       } catch (error) {
-        console.error("Erreur initialisation Auth :", error.message);
-      } finally {
+        console.error("Erreur récupération session :", error.message);
+
         if (mounted) {
+          setAuthUser(null);
           setLoading(false);
         }
       }
     };
 
-    initializeAuth();
-
+    // Écouter les changements d'authentification
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (mounted) {
+        setAuthUser(session?.user ?? null);
+      }
     });
+
+    initializeAuth();
 
     return () => {
       mounted = false;
@@ -43,18 +49,71 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // 2. Récupérer le profil complet depuis public.users
+  useEffect(() => {
+    let active = true;
+
+    const loadUserProfile = async () => {
+      if (!authUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const { data: profile, error } = await supabase
+          .from("users")
+          .select("id, first_name, last_name, email, role, status")
+          .eq("id", authUser.id)
+          .single();
+
+        if (error) throw error;
+
+        if (!profile) {
+          throw new Error("Profil utilisateur introuvable.");
+        }
+
+        const authenticatedUser = {
+          ...authUser,
+          ...profile,
+        };
+
+        if (active) {
+          setUser(authenticatedUser);
+
+          console.log("Utilisateur chargé :", authenticatedUser.id);
+          console.log("Rôle :", authenticatedUser.role);
+        }
+      } catch (error) {
+        console.error("Erreur récupération profil :", error.message);
+
+        if (active) {
+          setUser(null);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadUserProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [authUser]);
+
+  // 3. Connexion
   const login = async (email, password) => {
-    // Vérifier les données avant d'appeler Supabase
-    if (typeof email !== "string" || typeof password !== "string") {
-      return {
-        data: null,
-        error: new Error("L'e-mail ou le mot de passe est invalide."),
-      };
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!normalizedEmail || !password) {
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      !password
+    ) {
       return {
         data: null,
         error: new Error("Veuillez saisir votre e-mail et votre mot de passe."),
@@ -62,74 +121,69 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      console.log("🔐 Tentative de connexion Supabase...");
+      setLoading(true);
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
+        email: email.trim().toLowerCase(),
         password,
       });
 
-      if (error) {
-        console.error("❌ Erreur de connexion :", {
-          message: error.message,
-          status: error.status,
-          code: error.code,
-        });
+      if (error) throw error;
 
-        return { data: null, error };
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("id, first_name, last_name, email, role, status")
-        .eq("id", data.user.id)
-        .single();
-
-      if (profileError) {
-        console.error("Erreur récupération profil :", profileError.message);
-
-        return {
-          data: null,
-          error: new Error("Impossible de récupérer le profil utilisateur."),
-        };
-      }
-
-      const authenticatedUser = {
-        ...data.user,
-        ...profile,
+      return {
+        data,
+        error: null,
       };
-
-      setUser(authenticatedUser);
-
-      console.log("✅ Connexion réussie :", authenticatedUser.id);
-      console.log("👤 Rôle :", authenticatedUser.role);
-
-      return { data: { ...data, profile }, error: null };
-
     } catch (error) {
-      console.error("❌ Erreur inattendue :", error.message);
-      return { data: null, error };
+      console.error("Erreur connexion :", error.message);
+
+      setLoading(false);
+
+      return {
+        data: null,
+        error,
+      };
     }
   };
 
+  // 4. Déconnexion
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
 
-    if (error) {
+      if (error) throw error;
+
+      setUser(null);
+      setAuthUser(null);
+
+      console.log("Déconnexion réussie");
+    } catch (error) {
       console.error("Erreur déconnexion :", error.message);
       throw error;
     }
-
-    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+// 5. Hook personnalisé
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth doit être utilisé dans un AuthProvider.");
+  }
+
+  return context;
 }
