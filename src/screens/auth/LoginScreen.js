@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +15,11 @@ import {
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import Routes from "../../constants/routes";
 import { useAuth } from "../../context/AuthContext";
+
+const INVALID_CREDENTIALS_MSG =
+  "البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق من بيانات الدخول والمحاولة مرة أخرى.";
+
+const GENERIC_ERROR_MSG = "تعذر تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى.";
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -32,66 +36,86 @@ export default function LoginScreen({ navigation }) {
 
   const [loading, setLoading] = useState(false);
 
-  // NOUVEAU : erreurs sous les champs
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
+  // true quand email/mot de passe ne correspondent pas à la base
+  const [credentialsError, setCredentialsError] = useState(false);
+
   // ==============================
   // LOGIN
-  // ====
-
-  const showMessage = (title, message) => {
-    if (Platform.OS === "web") {
-      window.alert(`${title}\n\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
+  // ==============================
 
   const isValidEmail = (value) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
   };
 
-  const getArabicAuthError = (message = "") => {
-    const error = message.toLowerCase();
+  const getArabicAuthError = (err) => {
+    const message = (
+      typeof err === "string" ? err : err?.message || ""
+    ).toLowerCase();
+    const code = String(err?.code || "").toLowerCase();
+    const status = err?.status;
 
+    // Email ou mot de passe incorrect
     if (
-      error.includes("invalid login credentials") ||
-      error.includes("invalid_credentials")
+      code === "invalid_credentials" ||
+      status === 400 ||
+      status === 401 ||
+      message.includes("invalid login credentials") ||
+      message.includes("invalid_credentials") ||
+      message.includes("invalid credentials") ||
+      message.includes("wrong password") ||
+      message.includes("user not found") ||
+      message.includes("incorrect")
     ) {
-      return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+      return INVALID_CREDENTIALS_MSG;
     }
 
+    // Email non confirmé
     if (
-      error.includes("email not confirmed") ||
-      error.includes("email_not_confirmed")
+      code === "email_not_confirmed" ||
+      message.includes("email not confirmed")
     ) {
       return "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.";
     }
 
-    if (error.includes("too many requests") || error.includes("rate limit")) {
+    // Trop de tentatives
+    if (
+      status === 429 ||
+      message.includes("too many requests") ||
+      message.includes("rate limit")
+    ) {
       return "لقد تجاوزت عدد المحاولات المسموح بها. يرجى الانتظار ثم المحاولة مجدداً.";
     }
 
+    // Problème réseau
     if (
-      error.includes("failed to fetch") ||
-      error.includes("network") ||
-      error.includes("fetch")
+      message.includes("failed to fetch") ||
+      message.includes("network") ||
+      message.includes("fetch")
     ) {
       return "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.";
     }
 
-    return "تعذر تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى.";
+    return GENERIC_ERROR_MSG;
+  };
+
+  const showAuthError = (err) => {
+    const msg = getArabicAuthError(err);
+    setPasswordError(msg);
+    setCredentialsError(msg === INVALID_CREDENTIALS_MSG);
   };
 
   const handleLogin = async () => {
     const cleanEmail = email.trim().toLowerCase();
 
-    // Réinitialiser les anciennes erreurs
+    // Réinitialiser les erreurs
     setEmailError("");
     setPasswordError("");
+    setCredentialsError(false);
 
-    // 1. Vérification Email
+    // Validation email
     if (!cleanEmail) {
       setEmailError("يرجى إدخال البريد الإلكتروني.");
       return;
@@ -102,7 +126,7 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    // 2. Vérification Password
+    // Validation mot de passe
     if (!password.trim()) {
       setPasswordError("يرجى إدخال كلمة المرور.");
       return;
@@ -116,21 +140,21 @@ export default function LoginScreen({ navigation }) {
       const { data, error } = await login(cleanEmail, password);
 
       if (error) {
-        const arabicError = getArabicAuthError(error.message);
-        setPasswordError(arabicError);
+        console.log("Login error details:", error); // TEMPORAIRE : à retirer
+        showAuthError(error);
         return;
       }
 
       if (!data?.user) {
-        setPasswordError("تعذر تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى.");
+        setPasswordError(INVALID_CREDENTIALS_MSG);
+        setCredentialsError(true);
         return;
       }
 
-      // Succès : AuthContext/AppNavigator gèrent la navigation.
-    } catch (error) {
-      console.error("Login error:", error);
-
-      setPasswordError(getArabicAuthError(error?.message));
+      // La navigation est gérée par AuthContext / AppNavigator.
+    } catch (err) {
+      console.error("Login error:", err);
+      showAuthError(err);
     } finally {
       setLoading(false);
     }
@@ -150,53 +174,37 @@ export default function LoginScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ==============================
-                    BACKGROUND
-                ============================== */}
+        {/* BACKGROUND */}
 
         <View style={styles.backgroundShape1} />
         <View style={styles.backgroundShape2} />
         <View style={styles.backgroundShape3} />
 
-        {/* ==============================
-                    WHITE CARD
-                ============================== */}
+        {/* WHITE CARD */}
 
         <View style={styles.card}>
-          {/* ==============================
-                        PHOTO GRID
-                    ============================== */}
+          {/* PHOTO GRID */}
 
           <View style={styles.photoGrid}>
-            {/* Grande image */}
-
             <Image
               source={require("../../assets/images/login/login-1.png")}
               style={styles.photoLarge}
             />
-
-            {/* Petite image haut droite */}
 
             <Image
               source={require("../../assets/images/login/login-2.png")}
               style={styles.photoSmallTop}
             />
 
-            {/* Petite image bas gauche */}
-
             <Image
               source={require("../../assets/images/login/login-3.png")}
               style={styles.photoSmallLeft}
             />
 
-            {/* Image centrale */}
-
             <Image
               source={require("../../assets/images/login/login-4.png")}
               style={styles.photoCenter}
             />
-
-            {/* Image droite */}
 
             <Image
               source={require("../../assets/images/login/login-5.png")}
@@ -204,9 +212,7 @@ export default function LoginScreen({ navigation }) {
             />
           </View>
 
-          {/* ==============================
-                        TITRE
-                    ============================== */}
+          {/* TITRE */}
 
           <Text style={styles.title}>أهلاً بك مجدداً</Text>
 
@@ -214,14 +220,14 @@ export default function LoginScreen({ navigation }) {
             يرجى تسجيل الدخول للوصول إلى حسابك.
           </Text>
 
-          {/* ==============================
-                        EMAIL
-                    ============================== */}
+          {/* EMAIL */}
 
           <View
             style={[
               styles.inputContainer,
-              emailError ? styles.inputContainerError : null,
+              emailError || credentialsError
+                ? styles.inputContainerError
+                : null,
             ]}
           >
             <Ionicons
@@ -236,6 +242,10 @@ export default function LoginScreen({ navigation }) {
               onChangeText={(text) => {
                 setEmail(text);
                 if (emailError) setEmailError("");
+                if (credentialsError) {
+                  setCredentialsError(false);
+                  setPasswordError("");
+                }
               }}
               placeholder="أدخل بريدك الإلكتروني"
               placeholderTextColor="#777"
@@ -250,14 +260,14 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.errorText}>{emailError}</Text>
           ) : null}
 
-          {/* ==============================
-                        PASSWORD
-                    ============================== */}
+          {/* PASSWORD */}
 
           <View
             style={[
               styles.inputContainer,
-              passwordError ? styles.inputContainerError : null,
+              passwordError || credentialsError
+                ? styles.inputContainerError
+                : null,
             ]}
           >
             <TouchableOpacity
@@ -276,6 +286,7 @@ export default function LoginScreen({ navigation }) {
               onChangeText={(text) => {
                 setPassword(text);
                 if (passwordError) setPasswordError("");
+                if (credentialsError) setCredentialsError(false);
               }}
               placeholder="كلمة المرور"
               placeholderTextColor="#777"
@@ -289,25 +300,14 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.errorText}>{passwordError}</Text>
           ) : null}
 
-          {/* ==============================
-                        REMEMBER / FORGOT
-                    ============================== */}
+          {/* REMEMBER / FORGOT */}
 
           <View style={styles.optionsRow}>
-            {/* Forgot password */}
-
             <TouchableOpacity
-              onPress={() => {
-                console.log("CLICK FORGOT");
-                console.log("Route:", Routes.FORGOT_PASSWORD);
-                console.log("Navigation:", navigation);
-                navigation.navigate(Routes.FORGOT_PASSWORD);
-              }}
+              onPress={() => navigation.navigate(Routes.FORGOT_PASSWORD)}
             >
               <Text style={styles.forgotPassword}>نسيت كلمة المرور؟</Text>
             </TouchableOpacity>
-
-            {/* Remember me */}
 
             <TouchableOpacity
               style={styles.rememberContainer}
@@ -325,9 +325,7 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* ==============================
-                        SEPARATOR
-                    ============================== */}
+          {/* SEPARATOR */}
 
           <View style={styles.separatorContainer}>
             <View style={styles.separator} />
@@ -337,27 +335,19 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.separator} />
           </View>
 
-          {/* ==============================
-                        SOCIAL LOGIN
-                    ============================== */}
+          {/* SOCIAL LOGIN */}
 
           <View style={styles.socialContainer}>
-            {/* Google */}
-
             <TouchableOpacity style={styles.socialButton}>
               <Text style={styles.googleG}>G</Text>
             </TouchableOpacity>
-
-            {/* Facebook */}
 
             <TouchableOpacity style={styles.socialButton}>
               <FontAwesome name="facebook" size={30} color="#1877F2" />
             </TouchableOpacity>
           </View>
 
-          {/* ==============================
-                        LOGIN BUTTON
-                    ============================== */}
+          {/* LOGIN BUTTON */}
 
           <TouchableOpacity
             style={[styles.loginButton, loading && { opacity: 0.65 }]}
@@ -375,9 +365,7 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.loginDecoration} />
           </TouchableOpacity>
 
-          {/* ==============================
-                        REGISTER
-                    ============================== */}
+          {/* REGISTER */}
 
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>ليس لديك حساب؟</Text>
@@ -399,9 +387,7 @@ export default function LoginScreen({ navigation }) {
 // ==================================================
 
 const styles = StyleSheet.create({
-  // ==============================
   // SCREEN
-  // ==============================
 
   screen: {
     flex: 1,
@@ -415,219 +401,143 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 
-  // ==============================
   // BACKGROUND
-  // ==============================
 
   backgroundShape1: {
     position: "absolute",
-
     width: 450,
     height: 260,
-
     backgroundColor: "#D91F38",
-
     top: 90,
     left: -100,
-
     borderRadius: 180,
-
-    transform: [
-      {
-        rotate: "-8deg",
-      },
-    ],
+    transform: [{ rotate: "-8deg" }],
   },
 
   backgroundShape2: {
     position: "absolute",
-
     width: 430,
     height: 250,
-
     backgroundColor: "#E5253E",
-
     top: 300,
     right: -150,
-
     borderRadius: 180,
-
-    transform: [
-      {
-        rotate: "10deg",
-      },
-    ],
+    transform: [{ rotate: "10deg" }],
   },
 
   backgroundShape3: {
     position: "absolute",
-
     width: 500,
     height: 250,
-
     backgroundColor: "#D91F38",
-
     bottom: 100,
     left: -200,
-
     borderRadius: 180,
-
-    transform: [
-      {
-        rotate: "-15deg",
-      },
-    ],
+    transform: [{ rotate: "-15deg" }],
   },
 
-  // ==============================
   // WHITE CARD
-  // ==============================
 
   card: {
     width: "100%",
-
     minHeight: 730,
-
     backgroundColor: "#FFFFFF",
-
     borderRadius: 32,
-
     paddingHorizontal: 16,
     paddingTop: 70,
     paddingBottom: 28,
-
     alignItems: "center",
-
     overflow: "hidden",
   },
 
-  // ==============================
   // PHOTO GRID
-  // ==============================
 
   photoGrid: {
     width: 245,
     height: 165,
-
     position: "relative",
-
     marginBottom: 14,
   },
 
   photoLarge: {
     position: "absolute",
-
     left: 0,
     top: 0,
-
     width: 157,
     height: 67,
-
     borderRadius: 9,
   },
 
   photoSmallTop: {
     position: "absolute",
-
     right: 0,
     top: 0,
-
     width: 76,
     height: 38,
-
     borderRadius: 8,
   },
 
   photoSmallLeft: {
     position: "absolute",
-
     left: 0,
     bottom: 0,
-
     width: 64,
     height: 80,
-
     borderRadius: 8,
   },
 
   photoCenter: {
     position: "absolute",
-
     left: 72,
     bottom: 0,
-
     width: 87,
     height: 80,
-
     borderRadius: 8,
   },
 
   photoRight: {
     position: "absolute",
-
     right: 0,
     bottom: 0,
-
     width: 76,
     height: 116,
-
     borderRadius: 8,
   },
 
-  // ==============================
   // TITLES
-  // ==============================
 
   title: {
     fontSize: 30,
-
     color: "#111111",
-
     fontWeight: "500",
-
     textAlign: "center",
-
     writingDirection: "rtl",
-
     marginTop: 0,
   },
 
   subtitle: {
     fontSize: 13,
-
     color: "#777777",
-
     textAlign: "center",
-
     writingDirection: "rtl",
-
     marginTop: 6,
-
     marginBottom: 24,
   },
 
-  // ==============================
   // INPUTS
-  // ==============================
 
   inputContainer: {
     width: "92%",
     height: 46,
-
     backgroundColor: "#FFE9B3",
-
     borderRadius: 9,
-
     flexDirection: "row",
-
     alignItems: "center",
-
     marginBottom: 10,
-
     paddingHorizontal: 12,
   },
 
-  // NOUVEAU : bordure rouge si erreur
+  // Bordure rouge en cas d'erreur
   inputContainerError: {
     borderWidth: 1.5,
     borderColor: "#E53935",
@@ -636,15 +546,10 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
-
     height: "100%",
-
     fontSize: 13,
-
     color: "#333333",
-
     writingDirection: "rtl",
-
     paddingHorizontal: 8,
   },
 
@@ -656,20 +561,7 @@ const styles = StyleSheet.create({
     padding: 3,
   },
 
-  // NOUVEAU : texte d'erreur sous le champ
-  errorText: {
-    width: "92%",
-    color: "#E53935",
-    fontSize: 11,
-    textAlign: "right",
-    writingDirection: "rtl",
-    marginBottom: 10,
-    marginTop: 0,
-  },
-
-  // ==============================
-  // OPTIONS
-  // ==============================
+  // Texte d'erreur sous le champ
   errorText: {
     width: "92%",
     color: "#E53935",
@@ -679,240 +571,168 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 2,
     fontWeight: "500",
+    fontFamily: "TajawalRegular",
   },
+
+  // OPTIONS
 
   optionsRow: {
     width: "92%",
-
     flexDirection: "row",
-
     justifyContent: "space-between",
-
     alignItems: "center",
-
     marginTop: 1,
-
     marginBottom: 35,
   },
 
   forgotPassword: {
     color: "#F52F46",
-
     fontSize: 10,
-
     writingDirection: "rtl",
   },
 
   rememberContainer: {
     flexDirection: "row",
-
     alignItems: "center",
-
     gap: 5,
   },
 
   rememberText: {
     color: "#333333",
-
     fontSize: 10,
-
     writingDirection: "rtl",
   },
 
   checkbox: {
     width: 12,
     height: 12,
-
     borderWidth: 1,
-
     borderColor: "#BBBBBB",
-
     borderRadius: 2,
-
     justifyContent: "center",
-
     alignItems: "center",
   },
 
   checkboxActive: {
     backgroundColor: "#F52F46",
-
     borderColor: "#F52F46",
   },
 
-  // ==============================
   // SEPARATOR
-  // ==============================
 
   separatorContainer: {
     width: "82%",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     marginBottom: 17,
   },
 
   separator: {
     flex: 1,
-
     height: 1,
-
     backgroundColor: "#AAAAAA",
   },
 
   separatorText: {
     fontSize: 9,
-
     color: "#444444",
-
     marginHorizontal: 10,
-
     writingDirection: "rtl",
   },
 
-  // ==============================
   // SOCIAL
-  // ==============================
 
   socialContainer: {
     flexDirection: "row",
-
     justifyContent: "center",
-
     alignItems: "center",
-
     gap: 24,
-
     marginBottom: 35,
   },
 
   socialButton: {
     width: 38,
     height: 38,
-
     justifyContent: "center",
-
     alignItems: "center",
   },
 
   googleG: {
     fontSize: 28,
-
     fontWeight: "bold",
-
     color: "#4285F4",
   },
 
-  // ==============================
   // LOGIN BUTTON
-  // ==============================
 
   loginButton: {
     width: 190,
     height: 39,
-
     borderRadius: 22,
-
     backgroundColor: "#FF6B83",
-
     justifyContent: "center",
-
     alignItems: "center",
-
     position: "relative",
-
     overflow: "hidden",
-
     shadowColor: "#4FC3F7",
-
     shadowOffset: {
       width: 0,
       height: 10,
     },
-
     shadowOpacity: 0.25,
-
     shadowRadius: 14,
-
     elevation: 5,
-
     marginBottom: 35,
   },
 
   loginButtonText: {
     color: "#FFFFFF",
-
     fontSize: 17,
-
     fontWeight: "bold",
-
     writingDirection: "rtl",
-
     zIndex: 2,
   },
 
   loginCircle: {
     position: "absolute",
-
     left: 10,
-
     width: 22,
     height: 22,
-
     borderWidth: 2,
-
     borderColor: "#FFFFFF",
-
     borderRadius: 20,
-
     zIndex: 3,
   },
 
   loginDecoration: {
     position: "absolute",
-
     right: -20,
     bottom: -20,
-
     width: 70,
     height: 60,
-
     backgroundColor: "#FF8094",
-
     borderRadius: 40,
   },
 
-  // ==============================
   // REGISTER
-  // ==============================
 
   registerContainer: {
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     gap: 4,
   },
 
   registerText: {
     color: "#222222",
-
     fontSize: 12,
-
     writingDirection: "rtl",
   },
 
   registerLink: {
     color: "#F52F46",
-
     fontSize: 12,
-
     writingDirection: "rtl",
   },
 });

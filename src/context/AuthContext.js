@@ -75,6 +75,13 @@ export function AuthProvider({ children }) {
           throw new Error("Profil utilisateur introuvable.");
         }
 
+        // À adapter selon les valeurs réelles de ta colonne "status"
+        // (ex: "active", "approved"...). Si tu n'as pas de blocage, supprime ce bloc.
+        const BLOCKED_STATUSES = ["blocked", "suspended", "inactive"];
+        if (profile.status && BLOCKED_STATUSES.includes(profile.status)) {
+          throw new Error("Compte désactivé.");
+        }
+
         const authenticatedUser = {
           ...authUser,
           ...profile,
@@ -92,6 +99,10 @@ export function AuthProvider({ children }) {
         if (active) {
           setUser(null);
         }
+
+        // Profil introuvable / bloqué : on ferme la session
+        // pour ne pas laisser l'utilisateur coincé sans message.
+        await supabase.auth.signOut();
       } finally {
         if (active) {
           setLoading(false);
@@ -107,6 +118,8 @@ export function AuthProvider({ children }) {
   }, [authUser]);
 
   // 3. Connexion
+  // Pas de setLoading global ici : LoginScreen gère son propre "loading".
+  // Le loading global est géré par l'effet de chargement du profil.
   const login = async (email, password) => {
     if (
       typeof email !== "string" ||
@@ -121,28 +134,28 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      setLoading(true);
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // TEMPORAIRE : à retirer une fois le test terminé
+        console.log(
+          "Supabase login error:",
+          error.status,
+          error.code,
+          error.message,
+        );
 
-      return {
-        data,
-        error: null,
-      };
+        return { data: null, error };
+      }
+
+      return { data, error: null };
     } catch (error) {
       console.error("Erreur connexion :", error.message);
 
-      setLoading(false);
-
-      return {
-        data: null,
-        error,
-      };
+      return { data: null, error };
     }
   };
 
