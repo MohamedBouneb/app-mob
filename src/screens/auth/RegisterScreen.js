@@ -32,6 +32,14 @@ export default function RegisterScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
+  const [errors, setErrors] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    accepted: "",
+  });
+
   // =========================
   // Retour Login
   // =========================
@@ -56,28 +64,59 @@ export default function RegisterScreen({ navigation }) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
 
-    if (!cleanFullName || !cleanEmail || !cleanPhone || !password) {
-      showMessage("تنبيه", "يرجى ملء جميع الحقول");
-      return;
+    let newErrors = {
+      fullName: "",
+      email: "",
+      phone: "",
+      password: "",
+      accepted: "",
+    };
+
+    // Validation du nom complet
+    if (!cleanFullName) {
+      newErrors.fullName = "يرجى إدخال الاسم الكامل.";
+    } else if (cleanFullName.length < 3) {
+      newErrors.fullName = "يجب أن يتكون الاسم من 3 أحرف على الأقل.";
     }
 
+    // Validation Email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(cleanEmail)) {
-      showMessage("خطأ", "يرجى إدخال بريد إلكتروني صحيح");
-      return;
+    if (!cleanEmail) {
+      newErrors.email = "يرجى إدخال البريد الإلكتروني.";
+    } else if (!emailRegex.test(cleanEmail)) {
+      newErrors.email = "يرجى إدخال بريد إلكتروني صحيح.";
     }
 
-    if (password.length < 6) {
-      showMessage("تنبيه", "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل");
-      return;
+    // Validation téléphone
+    const phoneRegex = /^\+?[0-9]{8,15}$/;
+
+    if (!cleanPhone) {
+      newErrors.phone = "يرجى إدخال رقم الهاتف.";
+    } else if (!phoneRegex.test(cleanPhone.replace(/\s/g, ""))) {
+      newErrors.phone = "يرجى إدخال رقم هاتف صحيح.";
     }
 
+    // Validation mot de passe
+    if (!password) {
+      newErrors.password = "يرجى إدخال كلمة المرور.";
+    } else if (password.length < 6) {
+      newErrors.password = "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.";
+    }
+
+    // Validation conditions
     if (!accepted) {
-      showMessage("تنبيه", "يرجى الموافقة على الشروط والأحكام");
-      return;
+      newErrors.accepted = "يرجى الموافقة على الشروط والأحكام.";
     }
 
+    setErrors(newErrors);
+
+    // Vérifier s'il existe des erreurs
+    const hasErrors = Object.values(newErrors).some((error) => error !== "");
+
+    if (hasErrors) return;
+
+    // Navigation vers sélection du rôle
     navigation.navigate(Routes.ROLE_SELECTION, {
       registrationData: {
         fullName: cleanFullName,
@@ -235,6 +274,33 @@ export default function RegisterScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
+          {/* Messages d'erreur */}
+          <View style={styles.errorsContainer}>
+            {Object.values(errors).some((error) => error !== "") && (
+              <>
+                {errors.fullName ? (
+                  <Text style={styles.errorText}>{errors.fullName}</Text>
+                ) : null}
+
+                {errors.email ? (
+                  <Text style={styles.errorText}>{errors.email}</Text>
+                ) : null}
+
+                {errors.phone ? (
+                  <Text style={styles.errorText}>{errors.phone}</Text>
+                ) : null}
+
+                {errors.password ? (
+                  <Text style={styles.errorText}>{errors.password}</Text>
+                ) : null}
+
+                {errors.accepted ? (
+                  <Text style={styles.errorText}>{errors.accepted}</Text>
+                ) : null}
+              </>
+            )}
+          </View>
+
           {/* ================================= */}
           {/* BUTTON */}
           {/* ================================= */}
@@ -293,7 +359,22 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 8,
   },
+  // ==========================================
+  // ERREUR CHAMPES
+  // ==========================================
+  errorsContainer: {
+    width: "100%",
+    marginTop: 8,
+    marginBottom: 10,
+  },
 
+  errorText: {
+    color: "#E53935",
+    fontSize: 13,
+    textAlign: "right",
+    fontFamily: "TajawalRegular",
+    marginBottom: 4,
+  },
   // ==========================================
   // CARTE BLANCHE
   // ==========================================

@@ -32,6 +32,10 @@ export default function LoginScreen({ navigation }) {
 
   const [loading, setLoading] = useState(false);
 
+  // NOUVEAU : erreurs sous les champs
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
   // ==============================
   // LOGIN
   // ====
@@ -83,19 +87,27 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = async () => {
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Vérifier les champs obligatoires
-    if (!cleanEmail || !password) {
-      showMessage("حقول مطلوبة", "يرجى إدخال البريد الإلكتروني وكلمة المرور.");
+    // Réinitialiser les anciennes erreurs
+    setEmailError("");
+    setPasswordError("");
+
+    // 1. Vérification Email
+    if (!cleanEmail) {
+      setEmailError("يرجى إدخال البريد الإلكتروني.");
       return;
     }
 
-    // 2. Vérifier le format de l'email
     if (!isValidEmail(cleanEmail)) {
-      showMessage("بريد إلكتروني غير صالح", "يرجى إدخال بريد إلكتروني صحيح.");
+      setEmailError("يرجى إدخال بريد إلكتروني صحيح.");
       return;
     }
 
-    // 3. Éviter plusieurs connexions simultanées
+    // 2. Vérification Password
+    if (!password.trim()) {
+      setPasswordError("يرجى إدخال كلمة المرور.");
+      return;
+    }
+
     if (loading) return;
 
     try {
@@ -104,24 +116,21 @@ export default function LoginScreen({ navigation }) {
       const { data, error } = await login(cleanEmail, password);
 
       if (error) {
-        showMessage("فشل تسجيل الدخول", getArabicAuthError(error.message));
+        const arabicError = getArabicAuthError(error.message);
+        setPasswordError(arabicError);
         return;
       }
 
       if (!data?.user) {
-        showMessage(
-          "خطأ",
-          "لم يتم العثور على بيانات المستخدم. يرجى المحاولة مجدداً.",
-        );
+        setPasswordError("تعذر تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى.");
         return;
       }
 
-      // La navigation dépend de AppNavigator/AuthContext.
-      // Ne pas naviguer manuellement ici.
+      // Succès : AuthContext/AppNavigator gèrent la navigation.
     } catch (error) {
-      console.error("Login error:", error?.message);
+      console.error("Login error:", error);
 
-      showMessage("خطأ", getArabicAuthError(error?.message));
+      setPasswordError(getArabicAuthError(error?.message));
     } finally {
       setLoading(false);
     }
@@ -209,7 +218,12 @@ export default function LoginScreen({ navigation }) {
                         EMAIL
                     ============================== */}
 
-          <View style={styles.inputContainer}>
+          <View
+            style={[
+              styles.inputContainer,
+              emailError ? styles.inputContainerError : null,
+            ]}
+          >
             <Ionicons
               name="mail-outline"
               size={21}
@@ -219,7 +233,10 @@ export default function LoginScreen({ navigation }) {
 
             <TextInput
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError("");
+              }}
               placeholder="أدخل بريدك الإلكتروني"
               placeholderTextColor="#777"
               keyboardType="email-address"
@@ -229,11 +246,20 @@ export default function LoginScreen({ navigation }) {
             />
           </View>
 
+          {emailError ? (
+            <Text style={styles.errorText}>{emailError}</Text>
+          ) : null}
+
           {/* ==============================
                         PASSWORD
                     ============================== */}
 
-          <View style={styles.inputContainer}>
+          <View
+            style={[
+              styles.inputContainer,
+              passwordError ? styles.inputContainerError : null,
+            ]}
+          >
             <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
               style={styles.passwordIcon}
@@ -247,7 +273,10 @@ export default function LoginScreen({ navigation }) {
 
             <TextInput
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordError) setPasswordError("");
+              }}
               placeholder="كلمة المرور"
               placeholderTextColor="#777"
               secureTextEntry={!showPassword}
@@ -255,6 +284,10 @@ export default function LoginScreen({ navigation }) {
               style={styles.input}
             />
           </View>
+
+          {passwordError ? (
+            <Text style={styles.errorText}>{passwordError}</Text>
+          ) : null}
 
           {/* ==============================
                         REMEMBER / FORGOT
@@ -594,6 +627,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
 
+  // NOUVEAU : bordure rouge si erreur
+  inputContainerError: {
+    borderWidth: 1.5,
+    borderColor: "#E53935",
+    marginBottom: 4,
+  },
+
   input: {
     flex: 1,
 
@@ -616,9 +656,30 @@ const styles = StyleSheet.create({
     padding: 3,
   },
 
+  // NOUVEAU : texte d'erreur sous le champ
+  errorText: {
+    width: "92%",
+    color: "#E53935",
+    fontSize: 11,
+    textAlign: "right",
+    writingDirection: "rtl",
+    marginBottom: 10,
+    marginTop: 0,
+  },
+
   // ==============================
   // OPTIONS
   // ==============================
+  errorText: {
+    width: "92%",
+    color: "#E53935",
+    fontSize: 12,
+    textAlign: "right",
+    writingDirection: "rtl",
+    marginBottom: 10,
+    marginTop: 2,
+    fontWeight: "500",
+  },
 
   optionsRow: {
     width: "92%",
