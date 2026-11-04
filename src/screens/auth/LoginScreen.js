@@ -19,6 +19,14 @@ import { useAuth } from "../../context/AuthContext";
 const INVALID_CREDENTIALS_MSG =
   "البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق من بيانات الدخول والمحاولة مرة أخرى.";
 
+const EMAIL_NOT_CONFIRMED_MSG = "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.";
+
+const RATE_LIMIT_MSG =
+  "لقد تجاوزت عدد المحاولات المسموح بها. يرجى الانتظار ثم المحاولة مجدداً.";
+
+const NETWORK_ERROR_MSG =
+  "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.";
+
 const GENERIC_ERROR_MSG = "تعذر تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى.";
 
 export default function LoginScreen({ navigation }) {
@@ -57,45 +65,40 @@ export default function LoginScreen({ navigation }) {
     const code = String(err?.code || "").toLowerCase();
     const status = err?.status;
 
-    // Email ou mot de passe incorrect
-    if (
-      code === "invalid_credentials" ||
-      status === 400 ||
-      status === 401 ||
-      message.includes("invalid login credentials") ||
-      message.includes("invalid_credentials") ||
-      message.includes("invalid credentials") ||
-      message.includes("wrong password") ||
-      message.includes("user not found") ||
-      message.includes("incorrect")
-    ) {
-      return INVALID_CREDENTIALS_MSG;
-    }
-
-    // Email non confirmé
+    // 1. Email non confirmé (à vérifier AVANT les identifiants invalides)
     if (
       code === "email_not_confirmed" ||
       message.includes("email not confirmed")
     ) {
-      return "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.";
+      return EMAIL_NOT_CONFIRMED_MSG;
     }
 
-    // Trop de tentatives
+    // 2. Trop de tentatives
     if (
       status === 429 ||
+      code === "over_request_rate_limit" ||
       message.includes("too many requests") ||
       message.includes("rate limit")
     ) {
-      return "لقد تجاوزت عدد المحاولات المسموح بها. يرجى الانتظار ثم المحاولة مجدداً.";
+      return RATE_LIMIT_MSG;
     }
 
-    // Problème réseau
+    // 3. Problème réseau
     if (
+      message.includes("network request failed") ||
       message.includes("failed to fetch") ||
-      message.includes("network") ||
-      message.includes("fetch")
+      message.includes("network")
     ) {
-      return "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.";
+      return NETWORK_ERROR_MSG;
+    }
+
+    // 4. Email ou mot de passe incorrect
+    if (
+      code === "invalid_credentials" ||
+      message.includes("invalid login credentials") ||
+      message.includes("invalid credentials")
+    ) {
+      return INVALID_CREDENTIALS_MSG;
     }
 
     return GENERIC_ERROR_MSG;
@@ -140,7 +143,6 @@ export default function LoginScreen({ navigation }) {
       const { data, error } = await login(cleanEmail, password);
 
       if (error) {
-        console.log("Login error details:", error); // TEMPORAIRE : à retirer
         showAuthError(error);
         return;
       }

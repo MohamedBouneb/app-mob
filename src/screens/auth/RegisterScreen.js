@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
-  Alert,
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,13 +16,29 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import Routes from "../../constants/routes";
-import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
+
+const EMAIL_EXISTS_MSG =
+  "هذا البريد الإلكتروني مستخدم بالفعل. يرجى تسجيل الدخول أو استخدام بريد آخر.";
+
+const NETWORK_ERROR_MSG =
+  "تعذر التحقق من البريد الإلكتروني. تحقق من اتصالك بالإنترنت وحاول مجدداً.";
+
+const EMPTY_ERRORS = {
+  fullName: "",
+  email: "",
+  phone: "",
+  password: "",
+  accepted: "",
+  general: "",
+};
 
 export default function RegisterScreen({ navigation }) {
-  const { login } = useAuth();
-
   // =========================
-  // États des champs
+  // États
   // =========================
 
   const [fullName, setFullName] = useState("");
@@ -32,23 +48,16 @@ export default function RegisterScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
-  const [errors, setErrors] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-    accepted: "",
-  });
+  const [errors, setErrors] = useState(EMPTY_ERRORS);
+  const [checking, setChecking] = useState(false);
 
-  // =========================
-  // Retour Login
-  // =========================
-  const showMessage = (title, message) => {
-    if (Platform.OS === "web") {
-      window.alert(`${title}\n\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
+  // Refs pour passer au champ suivant avec le clavier
+  const emailRef = useRef(null);
+  const phoneRef = useRef(null);
+  const passwordRef = useRef(null);
+
+  const clearError = (field) => {
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: "" } : prev));
   };
 
   const goToLogin = () => {
@@ -56,75 +65,100 @@ export default function RegisterScreen({ navigation }) {
   };
 
   // =========================
-  // Sélection du rôle
+  // Vérifier si l'email existe déjà
   // =========================
 
-  const goToRoleSelection = () => {
+  const checkEmailExists = async (cleanEmail) => {
+    const { data, error } = await supabase.rpc("email_exists", {
+      check_email: cleanEmail,
+    });
+
+    if (error) throw error;
+
+    return data === true;
+  };
+
+  // =========================
+  // Validation + passage au choix du rôle
+  // =========================
+
+  const goToRoleSelection = async () => {
+    if (checking) return;
+
     const cleanFullName = fullName.trim();
     const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.trim();
+    const cleanPhone = phone.replace(/\s/g, "");
 
-    let newErrors = {
-      fullName: "",
-      email: "",
-      phone: "",
-      password: "",
-      accepted: "",
-    };
+    const newErrors = { ...EMPTY_ERRORS };
 
-    // Validation du nom complet
+    // Nom complet
     if (!cleanFullName) {
       newErrors.fullName = "يرجى إدخال الاسم الكامل.";
     } else if (cleanFullName.length < 3) {
       newErrors.fullName = "يجب أن يتكون الاسم من 3 أحرف على الأقل.";
     }
 
-    // Validation Email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+    // Email
     if (!cleanEmail) {
       newErrors.email = "يرجى إدخال البريد الإلكتروني.";
-    } else if (!emailRegex.test(cleanEmail)) {
+    } else if (!EMAIL_REGEX.test(cleanEmail)) {
       newErrors.email = "يرجى إدخال بريد إلكتروني صحيح.";
     }
 
-    // Validation téléphone
-    const phoneRegex = /^\+?[0-9]{8,15}$/;
-
+    // Téléphone
     if (!cleanPhone) {
       newErrors.phone = "يرجى إدخال رقم الهاتف.";
-    } else if (!phoneRegex.test(cleanPhone.replace(/\s/g, ""))) {
+    } else if (!PHONE_REGEX.test(cleanPhone)) {
       newErrors.phone = "يرجى إدخال رقم هاتف صحيح.";
     }
 
-    // Validation mot de passe
+    // Mot de passe
     if (!password) {
       newErrors.password = "يرجى إدخال كلمة المرور.";
-    } else if (password.length < 6) {
-      newErrors.password = "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.";
+    } else if (password.length < 8) {
+      newErrors.password = "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.";
+    } else if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      newErrors.password = "يجب أن تحتوي كلمة المرور على حروف وأرقام.";
     }
 
-    // Validation conditions
+    // Conditions
     if (!accepted) {
       newErrors.accepted = "يرجى الموافقة على الشروط والأحكام.";
     }
 
-    setErrors(newErrors);
+    const hasErrors = Object.values(newErrors).some((e) => e !== "");
 
-    // Vérifier s'il existe des erreurs
-    const hasErrors = Object.values(newErrors).some((error) => error !== "");
+    if (hasErrors) {
+      setErrors(newErrors);
+      return;
+    }
 
-    if (hasErrors) return;
+    // Vérification email déjà utilisé
+    try {
+      setChecking(true);
+      setErrors(EMPTY_ERRORS);
 
-    // Navigation vers sélection du rôle
-    navigation.navigate(Routes.ROLE_SELECTION, {
-      registrationData: {
-        fullName: cleanFullName,
-        email: cleanEmail,
-        phone: cleanPhone,
-        password,
-      },
-    });
+      const exists = await checkEmailExists(cleanEmail);
+
+      if (exists) {
+        setErrors({ ...EMPTY_ERRORS, email: EMAIL_EXISTS_MSG });
+        return;
+      }
+
+      navigation.navigate(Routes.ROLE_SELECTION, {
+        registrationData: {
+          fullName: cleanFullName,
+          email: cleanEmail,
+          phone: cleanPhone,
+          password,
+        },
+      });
+    } catch (err) {
+      console.error("Email check error:", err);
+      setErrors({ ...EMPTY_ERRORS, general: NETWORK_ERROR_MSG });
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -138,9 +172,7 @@ export default function RegisterScreen({ navigation }) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          {/* ================================= */}
           {/* IMAGE */}
-          {/* ================================= */}
 
           <Image
             source={require("../../assets/images/login/login-1.png")}
@@ -148,22 +180,22 @@ export default function RegisterScreen({ navigation }) {
             resizeMode="cover"
           />
 
-          {/* ================================= */}
           {/* TITRE */}
-          {/* ================================= */}
 
           <Text style={styles.title}>البدء</Text>
-
           <Text style={styles.subtitle}>من خلال إنشاء حساب مجاني</Text>
 
-          {/* ================================= */}
           {/* FORMULAIRE */}
-          {/* ================================= */}
 
           <View style={styles.form}>
             {/* NOM COMPLET */}
 
-            <View style={styles.inputContainer}>
+            <View
+              style={[
+                styles.inputContainer,
+                errors.fullName ? styles.inputContainerError : null,
+              ]}
+            >
               <Ionicons
                 name="person-outline"
                 size={21}
@@ -176,15 +208,29 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="الاسم الكامل"
                 placeholderTextColor="#777"
                 value={fullName}
-                onChangeText={setFullName}
+                onChangeText={(text) => {
+                  setFullName(text);
+                  clearError("fullName");
+                }}
                 textAlign="right"
-                writingDirection="rtl"
+                autoComplete="name"
+                textContentType="name"
+                returnKeyType="next"
+                onSubmitEditing={() => emailRef.current?.focus()}
               />
             </View>
+            {errors.fullName ? (
+              <Text style={styles.errorText}>{errors.fullName}</Text>
+            ) : null}
 
             {/* EMAIL */}
 
-            <View style={styles.inputContainer}>
+            <View
+              style={[
+                styles.inputContainer,
+                errors.email ? styles.inputContainerError : null,
+              ]}
+            >
               <Ionicons
                 name="mail-outline"
                 size={21}
@@ -193,21 +239,38 @@ export default function RegisterScreen({ navigation }) {
               />
 
               <TextInput
+                ref={emailRef}
                 style={styles.input}
                 placeholder="بريد إلكتروني صالح"
                 placeholderTextColor="#777"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  clearError("email");
+                  clearError("general");
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
                 textAlign="right"
-                writingDirection="rtl"
+                returnKeyType="next"
+                onSubmitEditing={() => phoneRef.current?.focus()}
               />
             </View>
+            {errors.email ? (
+              <Text style={styles.errorText}>{errors.email}</Text>
+            ) : null}
 
             {/* TELEPHONE */}
 
-            <View style={styles.inputContainer}>
+            <View
+              style={[
+                styles.inputContainer,
+                errors.phone ? styles.inputContainerError : null,
+              ]}
+            >
               <Ionicons
                 name="phone-portrait-outline"
                 size={21}
@@ -216,20 +279,35 @@ export default function RegisterScreen({ navigation }) {
               />
 
               <TextInput
+                ref={phoneRef}
                 style={styles.input}
                 placeholder="رقم الهاتف"
                 placeholderTextColor="#777"
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(text) => {
+                  setPhone(text);
+                  clearError("phone");
+                }}
                 keyboardType="phone-pad"
+                autoComplete="tel"
+                textContentType="telephoneNumber"
                 textAlign="right"
-                writingDirection="rtl"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
             </View>
+            {errors.phone ? (
+              <Text style={styles.errorText}>{errors.phone}</Text>
+            ) : null}
 
             {/* PASSWORD */}
 
-            <View style={styles.inputContainer}>
+            <View
+              style={[
+                styles.inputContainer,
+                errors.password ? styles.inputContainerError : null,
+              ]}
+            >
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.inputIconButton}
@@ -242,25 +320,37 @@ export default function RegisterScreen({ navigation }) {
               </TouchableOpacity>
 
               <TextInput
+                ref={passwordRef}
                 style={styles.input}
                 placeholder="كلمة مرور"
                 placeholderTextColor="#777"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  clearError("password");
+                }}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoComplete="new-password"
+                textContentType="newPassword"
                 textAlign="right"
-                writingDirection="rtl"
+                returnKeyType="done"
+                onSubmitEditing={goToRoleSelection}
               />
             </View>
+            {errors.password ? (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            ) : null}
           </View>
 
-          {/* ================================= */}
           {/* CONDITIONS */}
-          {/* ================================= */}
 
           <TouchableOpacity
             style={styles.termsRow}
-            onPress={() => setAccepted(!accepted)}
+            onPress={() => {
+              setAccepted(!accepted);
+              clearError("accepted");
+            }}
             activeOpacity={0.8}
           >
             <View style={[styles.checkbox, accepted && styles.checkboxChecked]}>
@@ -273,57 +363,37 @@ export default function RegisterScreen({ navigation }) {
               من خلال تحديد المربع، فإنك توافق على شروطنا وأحكامنا
             </Text>
           </TouchableOpacity>
+          {errors.accepted ? (
+            <Text style={styles.errorText}>{errors.accepted}</Text>
+          ) : null}
 
-          {/* Messages d'erreur */}
-          <View style={styles.errorsContainer}>
-            {Object.values(errors).some((error) => error !== "") && (
-              <>
-                {errors.fullName ? (
-                  <Text style={styles.errorText}>{errors.fullName}</Text>
-                ) : null}
+          {/* ERREUR GÉNÉRALE (réseau...) */}
 
-                {errors.email ? (
-                  <Text style={styles.errorText}>{errors.email}</Text>
-                ) : null}
+          {errors.general ? (
+            <Text style={styles.errorText}>{errors.general}</Text>
+          ) : null}
 
-                {errors.phone ? (
-                  <Text style={styles.errorText}>{errors.phone}</Text>
-                ) : null}
-
-                {errors.password ? (
-                  <Text style={styles.errorText}>{errors.password}</Text>
-                ) : null}
-
-                {errors.accepted ? (
-                  <Text style={styles.errorText}>{errors.accepted}</Text>
-                ) : null}
-              </>
-            )}
-          </View>
-
-          {/* ================================= */}
-          {/* BUTTON */}
-          {/* ================================= */}
+          {/* BOUTON */}
 
           <TouchableOpacity
-            style={styles.registerButton}
+            style={[styles.registerButton, checking && { opacity: 0.65 }]}
             onPress={goToRoleSelection}
             activeOpacity={0.8}
+            disabled={checking}
+            accessibilityRole="button"
           >
-            {/* Cercle gauche */}
-
             <View style={styles.buttonCircle} />
 
-            <Text style={styles.buttonText}>الاستمرار</Text>
-
-            {/* Partie arrondie droite */}
+            {checking ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>الاستمرار</Text>
+            )}
 
             <View style={styles.buttonRightShape} />
           </TouchableOpacity>
 
-          {/* ================================= */}
           {/* LOGIN LINK */}
-          {/* ================================= */}
 
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>هل لديك حساب بالفعل؟</Text>
@@ -339,18 +409,11 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // ==========================================
-  // ÉCRAN ROUGE
-  // ==========================================
-
+  // ÉCRAN
   screen: {
     flex: 1,
     backgroundColor: "#F52F46",
   },
-
-  // ==========================================
-  // SCROLL
-  // ==========================================
 
   scrollContainer: {
     flexGrow: 1,
@@ -359,26 +422,8 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 8,
   },
-  // ==========================================
-  // ERREUR CHAMPES
-  // ==========================================
-  errorsContainer: {
-    width: "100%",
-    marginTop: 8,
-    marginBottom: 10,
-  },
 
-  errorText: {
-    color: "#E53935",
-    fontSize: 13,
-    textAlign: "right",
-    fontFamily: "TajawalRegular",
-    marginBottom: 4,
-  },
-  // ==========================================
-  // CARTE BLANCHE
-  // ==========================================
-
+  // CARTE
   card: {
     width: "94%",
     minHeight: 650,
@@ -391,10 +436,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  // ==========================================
   // IMAGE
-  // ==========================================
-
   image: {
     width: 140,
     height: 140,
@@ -402,10 +444,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 
-  // ==========================================
   // TITRE
-  // ==========================================
-
   title: {
     fontSize: 30,
     color: "#111111",
@@ -424,18 +463,11 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  // ==========================================
   // FORMULAIRE
-  // ==========================================
-
   form: {
     width: "100%",
     alignItems: "center",
   },
-
-  // ==========================================
-  // INPUT
-  // ==========================================
 
   inputContainer: {
     width: "100%",
@@ -445,6 +477,12 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     flexDirection: "row",
     alignItems: "center",
+  },
+
+  inputContainerError: {
+    borderWidth: 1.5,
+    borderColor: "#E53935",
+    marginBottom: 4,
   },
 
   input: {
@@ -457,10 +495,6 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // ==========================================
-  // ICÔNE
-  // ==========================================
-
   inputIcon: {
     marginLeft: 12,
   },
@@ -472,16 +506,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // ==========================================
-  // CONDITIONS
-  // ==========================================
+  // ERREURS (sous chaque champ)
+  errorText: {
+    width: "100%",
+    color: "#E53935",
+    fontSize: 12,
+    textAlign: "right",
+    writingDirection: "rtl",
+    fontFamily: "TajawalRegular",
+    marginBottom: 8,
+  },
 
+  // CONDITIONS
   termsRow: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    marginTop: 38,
+    marginTop: 20,
+    marginBottom: 6,
     paddingHorizontal: 5,
   },
 
@@ -510,28 +553,19 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // ==========================================
   // BOUTON
-  // ==========================================
-
   registerButton: {
     width: "72%",
     height: 36,
     backgroundColor: "#FF6F87",
     borderRadius: 20,
-    marginTop: 47,
+    marginTop: 30,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
     overflow: "hidden",
-
     shadowColor: "#65C9E8",
-
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 5,
@@ -546,10 +580,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
 
-  // ==========================================
-  // CERCLE GAUCHE
-  // ==========================================
-
   buttonCircle: {
     position: "absolute",
     left: 10,
@@ -561,10 +591,6 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
 
-  // ==========================================
-  // FORME DROITE
-  // ==========================================
-
   buttonRightShape: {
     position: "absolute",
     right: -8,
@@ -575,18 +601,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F57C91",
   },
 
-  // ==========================================
   // LOGIN
-  // ==========================================
-
   loginRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 38,
-
-    // CORRECTION :
-    writingDirection: "rtl",
+    marginTop: 26,
   },
 
   loginText: {
