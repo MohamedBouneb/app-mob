@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [accountNotice, setAccountNotice] = useState(null); // "PENDING" | "REJECTED" | null
 
   // 1. Initialiser la session Supabase
   useEffect(() => {
@@ -56,6 +57,7 @@ export function AuthProvider({ children }) {
     const loadUserProfile = async () => {
       if (!authUser) {
         setUser(null);
+        setAccountNotice(null);
         setLoading(false);
         return;
       }
@@ -63,6 +65,7 @@ export function AuthProvider({ children }) {
       setLoading(true);
 
       try {
+        // 1. Récupérer le profil utilisateur
         const { data: profile, error } = await supabase
           .from("users")
           .select("id, first_name, last_name, email, role, status")
@@ -75,13 +78,31 @@ export function AuthProvider({ children }) {
           throw new Error("Profil utilisateur introuvable.");
         }
 
-        // À adapter selon les valeurs réelles de ta colonne "status"
-        // (ex: "active", "approved"...). Si tu n'as pas de blocage, supprime ce bloc.
-        const BLOCKED_STATUSES = ["blocked", "suspended", "inactive"];
-        if (profile.status && BLOCKED_STATUSES.includes(profile.status)) {
+        // 2. Vérifier le statut du compte
+        const accountStatus = String(profile.status || "").toUpperCase();
+
+        // 3. Vérifier si le compte est en attente ou rejeté
+        if (accountStatus === "PENDING" || accountStatus === "REJECTED") {
+          if (active) {
+            setAccountNotice(accountStatus);
+
+            setUser({
+              ...authUser,
+              ...profile,
+            });
+          }
+
+          return; // Ne pas déconnecter l'utilisateur
+        }
+
+        // 4. Vérifier les comptes désactivés
+        const BLOCKED_STATUSES = ["BLOCKED", "SUSPENDED", "INACTIVE"];
+
+        if (BLOCKED_STATUSES.includes(accountStatus)) {
           throw new Error("Compte désactivé.");
         }
 
+        // 5. Utilisateur autorisé
         const authenticatedUser = {
           ...authUser,
           ...profile,
@@ -89,19 +110,20 @@ export function AuthProvider({ children }) {
 
         if (active) {
           setUser(authenticatedUser);
+          setAccountNotice(null);
 
           console.log("Utilisateur chargé :", authenticatedUser.id);
           console.log("Rôle :", authenticatedUser.role);
+          console.log("Statut :", accountStatus);
         }
       } catch (error) {
         console.error("Erreur récupération profil :", error.message);
 
         if (active) {
           setUser(null);
+          setAccountNotice(null);
         }
 
-        // Profil introuvable / bloqué : on ferme la session
-        // pour ne pas laisser l'utilisateur coincé sans message.
         await supabase.auth.signOut();
       } finally {
         if (active) {
@@ -175,7 +197,7 @@ export function AuthProvider({ children }) {
       throw error;
     }
   };
-
+  const clearAccountNotice = () => setAccountNotice(null);
   return (
     <AuthContext.Provider
       value={{
@@ -183,6 +205,8 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
+        accountNotice,
+        clearAccountNotice,
       }}
     >
       {children}

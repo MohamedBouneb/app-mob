@@ -1,17 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+
 import { supabase } from "../../lib/supabase";
+import { confirmAction, notify } from "../../utils/dialogs";
 
 const COLORS = {
   primary: "#F52F46",
@@ -24,11 +25,24 @@ const COLORS = {
   red: "#B91C1C",
 };
 
+const FILTERS = [
+  { key: "PENDING", label: "قيد المراجعة" },
+  { key: "APPROVED", label: "مقبول" },
+  { key: "REJECTED", label: "مرفوض" },
+];
+
+const STATUS_LABELS = {
+  PENDING: "قيد المراجعة",
+  APPROVED: "مقبول",
+  REJECTED: "مرفوض",
+};
+
 export default function TeacherManagementScreen() {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
+  const [filter, setFilter] = useState("PENDING");
 
   const loadTeachers = useCallback(async () => {
     try {
@@ -67,10 +81,7 @@ export default function TeacherManagementScreen() {
       );
     } catch (error) {
       console.error("Erreur chargement animatrices :", error);
-      Alert.alert(
-        "Erreur",
-        "Impossible de charger les demandes. Vérifiez la connexion et les autorisations Supabase.",
-      );
+      notify("خطأ", "تعذر تحميل الطلبات. تحقق من الاتصال ومن صلاحيات الوصول.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -83,64 +94,76 @@ export default function TeacherManagementScreen() {
     }, [loadTeachers]),
   );
 
-  const changeStatus = (teacher, newStatus) => {
+  const counts = useMemo(() => {
+    const result = { PENDING: 0, APPROVED: 0, REJECTED: 0 };
+
+    teachers.forEach((teacher) => {
+      const status = teacher.status || "PENDING";
+      if (result[status] !== undefined) result[status] += 1;
+    });
+
+    return result;
+  }, [teachers]);
+
+  const visibleTeachers = useMemo(
+    () =>
+      teachers.filter((teacher) => (teacher.status || "PENDING") === filter),
+    [teachers, filter],
+  );
+
+  const changeStatus = async (teacher, newStatus) => {
     const isApproved = newStatus === "APPROVED";
 
-    Alert.alert(
-      isApproved ? "قبول الطلب" : "رفض الطلب",
-      isApproved
-        ? "هل تريد قبول طلب هذه المنشّطة؟"
+    const confirmed = await confirmAction({
+      title: isApproved ? "قبول الطلب" : "رفض الطلب",
+      message: isApproved
+        ? "هل تريد قبول طلب هذه المنشّطة؟ سيتم تفعيل حسابها."
         : "هل تريد رفض طلب هذه المنشّطة؟",
-      [
-        { text: "إلغاء", style: "cancel" },
-        {
-          text: isApproved ? "قبول" : "رفض",
-          style: isApproved ? "default" : "destructive",
-          onPress: async () => {
-            setUpdatingId(teacher.user_id);
+      confirmText: isApproved ? "قبول" : "رفض",
+      destructive: !isApproved,
+    });
 
-            try {
-              const { error } = await supabase
-                .from("teacher_profiles")
-                .update({ status: newStatus })
-                .eq("user_id", teacher.user_id);
+    if (!confirmed) return;
 
-              if (error) throw error;
+    setUpdatingId(teacher.user_id);
 
-              setTeachers((current) =>
-                current.map((item) =>
-                  item.user_id === teacher.user_id
-                    ? { ...item, status: newStatus }
-                    : item,
-                ),
-              );
+    try {
+      // Met à jour teacher_profiles.status ET users.status (réservé aux admins)
+      const { error } = await supabase.rpc("review_teacher", {
+        p_user_id: teacher.user_id,
+        p_status: newStatus,
+      });
 
-              Alert.alert(
-                "تم",
-                isApproved ? "تم قبول طلب المنشّطة." : "تم رفض طلب المنشّطة.",
-              );
-            } catch (error) {
-              console.error("Erreur changement statut :", error);
-              Alert.alert(
-                "Erreur",
-                "Impossible de modifier le statut. Vérifiez les politiques RLS.",
-              );
-            } finally {
-              setUpdatingId(null);
-            }
-          },
-        },
-      ],
-    );
+      if (error) throw error;
+
+      setTeachers((current) =>
+        current.map((item) =>
+          item.user_id === teacher.user_id
+            ? { ...item, status: newStatus }
+            : item,
+        ),
+      );
+
+      notify(
+        "تم",
+        isApproved ? "تم قبول طلب المنشّطة." : "تم رفض طلب المنشّطة.",
+      );
+    } catch (error) {
+      console.error("Erreur changement statut :", error);
+      notify("خطأ", "تعذر تعديل حالة الطلب. تأكد من أنك مسجل الدخول كمسؤول.");
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const renderTeacher = ({ item }) => {
     const name = item.user
       ? `${item.user.first_name || ""} ${item.user.last_name || ""}`.trim()
-      : "Utilisateur sans profil";
+      : "";
 
     const status = item.status || "PENDING";
     const pending = status === "PENDING";
+    const busy = updatingId === item.user_id;
 
     return (
       <View style={styles.card}>
@@ -150,12 +173,12 @@ export default function TeacherManagementScreen() {
           </View>
 
           <View style={styles.identity}>
-            <Text style={styles.name}>{name || "Sans nom"}</Text>
+            <Text style={styles.name}>{name || "منشّطة بدون اسم"}</Text>
             <Text style={styles.email}>
-              {item.user?.email || "E-mail indisponible"}
+              {item.user?.email || "البريد الإلكتروني غير متوفر"}
             </Text>
             <Text style={styles.phone}>
-              {item.user?.phone || "Téléphone indisponible"}
+              {item.user?.phone || "رقم الهاتف غير متوفر"}
             </Text>
           </View>
         </View>
@@ -177,11 +200,7 @@ export default function TeacherManagementScreen() {
               pending && styles.pending,
             ]}
           >
-            {status === "APPROVED"
-              ? "مقبول"
-              : status === "REJECTED"
-                ? "مرفوض"
-                : "قيد المراجعة"}
+            {STATUS_LABELS[status] || STATUS_LABELS.PENDING}
           </Text>
         </View>
 
@@ -189,7 +208,7 @@ export default function TeacherManagementScreen() {
           <View style={styles.actions}>
             <TouchableOpacity
               style={[styles.actionButton, styles.rejectButton]}
-              disabled={updatingId === item.user_id}
+              disabled={busy}
               onPress={() => changeStatus(item, "REJECTED")}
             >
               <Text style={styles.rejectText}>رفض</Text>
@@ -197,10 +216,10 @@ export default function TeacherManagementScreen() {
 
             <TouchableOpacity
               style={[styles.actionButton, styles.approveButton]}
-              disabled={updatingId === item.user_id}
+              disabled={busy}
               onPress={() => changeStatus(item, "APPROVED")}
             >
-              {updatingId === item.user_id ? (
+              {busy ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.approveText}>قبول الطلب</Text>
@@ -223,8 +242,28 @@ export default function TeacherManagementScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Filtres */}
+      <View style={styles.chipsRow}>
+        {FILTERS.map((item) => {
+          const active = filter === item.key;
+
+          return (
+            <TouchableOpacity
+              key={item.key}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setFilter(item.key)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {item.label} ({counts[item.key]})
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <FlatList
-        data={teachers}
+        data={visibleTeachers}
         keyExtractor={(item) => item.user_id}
         renderItem={renderTeacher}
         contentContainerStyle={styles.list}
@@ -241,7 +280,7 @@ export default function TeacherManagementScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="people-outline" size={50} color={COLORS.muted} />
-            <Text style={styles.emptyTitle}>لا توجد طلبات تسجيل</Text>
+            <Text style={styles.emptyTitle}>لا توجد طلبات في هذه الفئة</Text>
             <Text style={styles.emptyText}>
               ستظهر هنا ملفات المنشّطات عند إرسال طلباتها.
             </Text>
@@ -263,6 +302,28 @@ function Info({ label, value }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+
+  chipsRow: {
+    flexDirection: "row-reverse",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  chipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  chipText: { fontSize: 12, color: COLORS.muted, fontWeight: "600" },
+  chipTextActive: { color: COLORS.white },
+
   list: { padding: 16, paddingBottom: 30, flexGrow: 1 },
   card: {
     backgroundColor: COLORS.white,

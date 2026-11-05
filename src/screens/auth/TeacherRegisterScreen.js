@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -15,59 +14,106 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import * as DocumentPicker from "expo-document-picker";
+
+import Routes from "../../constants/routes";
 import { supabase } from "../../lib/supabase";
 
 const RED = "#F52F46";
 
+const MSG = {
+  missingData:
+    "المعلومات الأساسية مفقودة. يرجى العودة وإعادة التسجيل من البداية.",
+  required: "يرجى ملء جميع المعلومات المطلوبة.",
+  experience: "يرجى إدخال عدد سنوات خبرة صحيح.",
+  birthFormat: "أدخل تاريخ الميلاد بصيغة يوم/شهر/سنة.",
+  birthInvalid: "تاريخ الميلاد غير صحيح.",
+  birthAge: "يجب أن يكون عمرك 18 سنة على الأقل.",
+  emailExists:
+    "هذا البريد الإلكتروني مستخدم بالفعل. يرجى تسجيل الدخول أو استخدام بريد آخر.",
+  rateLimit:
+    "تم تجاوز عدد المحاولات المسموح بها. يرجى الانتظار قليلاً ثم المحاولة مجدداً.",
+  network: "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.",
+  generic: "تعذر إكمال التسجيل. يرجى المحاولة مرة أخرى.",
+};
+
+// Formate la saisie en JJ/MM/AAAA automatiquement
+const formatBirthDateInput = (text) => {
+  const digits = text.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
+
+const parseBirthDate = (value) => {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+  if (!match) return { error: MSG.birthFormat };
+
+  const [, day, month, year] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day) ||
+    date > new Date()
+  ) {
+    return { error: MSG.birthInvalid };
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age -= 1;
+  }
+
+  if (age < 18) return { error: MSG.birthAge };
+
+  return { iso: `${year}-${month}-${day}` };
+};
+
+const getSignUpError = (err) => {
+  const message = (err?.message || "").toLowerCase();
+  const code = String(err?.code || "").toLowerCase();
+
+  if (
+    code === "user_already_exists" ||
+    message.includes("already registered")
+  ) {
+    return MSG.emailExists;
+  }
+
+  if (
+    code === "over_email_send_rate_limit" ||
+    err?.status === 429 ||
+    message.includes("rate limit")
+  ) {
+    return MSG.rateLimit;
+  }
+
+  if (message.includes("network") || message.includes("fetch")) {
+    return MSG.network;
+  }
+
+  return MSG.generic;
+};
+
 export default function TeacherRegisterScreen({ navigation, route }) {
   const registrationData = route?.params?.registrationData;
 
-  console.log("Received registrationData:", {
-    fullName: registrationData?.fullName,
-    email: registrationData?.email,
-    phone: registrationData?.phone,
-    password: registrationData?.password,
-  });
-  // Tes états existants restent ici :
   const [address, setAddress] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [diploma, setDiploma] = useState("");
   const [experience, setExperience] = useState("");
+
   const [saving, setSaving] = useState(false);
-  const [cv, setCv] = useState(null);
-
-  // =========================
-  // Select CV
-  // =========================
-
-  const handlePickCV = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          "application/pdf",
-          "application/msword",
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setCv(result.assets[0]);
-      }
-    } catch (error) {
-      console.log("Erreur sélection CV:", error);
-
-      Alert.alert("Erreur", "Impossible de sélectionner le CV.");
-    }
-  };
-  console.log("Teacher data:", {
-    address,
-    birthDate,
-    diploma,
-    experience,
-    cv,
-  });
+  const [formError, setFormError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
   // =========================
   // Submit
@@ -76,55 +122,36 @@ export default function TeacherRegisterScreen({ navigation, route }) {
   const handleSubmit = async () => {
     if (saving) return;
 
+    setFormError("");
+
     if (!registrationData?.email || !registrationData?.password) {
-      Alert.alert(
-        "Erreur",
-        "Les informations du premier formulaire sont manquantes. Recommencez l'inscription.",
-      );
+      setFormError(MSG.missingData);
       return;
     }
 
     const cleanAddress = address.trim();
-    const cleanBirthDate = birthDate.trim();
     const cleanDiploma = diploma.trim();
-    const normalizedExperience = experience.trim().replace(/^\+/, "");
+    const cleanExperience = experience.trim();
 
     if (
       !cleanAddress ||
-      !cleanBirthDate ||
+      !birthDate.trim() ||
       !cleanDiploma ||
-      !normalizedExperience
+      !cleanExperience
     ) {
-      Alert.alert("تنبيه", "يرجى ملء جميع المعلومات المطلوبة");
+      setFormError(MSG.required);
       return;
     }
 
-    if (
-      !/^\d+$/.test(normalizedExperience) ||
-      Number(normalizedExperience) > 60
-    ) {
-      Alert.alert("تنبيه", "يرجى إدخال عدد سنوات خبرة صحيح");
+    if (!/^\d+$/.test(cleanExperience) || Number(cleanExperience) > 60) {
+      setFormError(MSG.experience);
       return;
     }
 
-    const dateMatch = cleanBirthDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    const birth = parseBirthDate(birthDate.trim());
 
-    if (!dateMatch) {
-      Alert.alert("تنبيه", "أدخل تاريخ الميلاد بصيغة يوم/شهر/سنة");
-      return;
-    }
-
-    const [, day, month, year] = dateMatch;
-    const formattedBirthDate = `${year}-${month}-${day}`;
-    const parsedDate = new Date(`${formattedBirthDate}T00:00:00`);
-
-    if (
-      Number.isNaN(parsedDate.getTime()) ||
-      parsedDate.getFullYear() !== Number(year) ||
-      parsedDate.getMonth() + 1 !== Number(month) ||
-      parsedDate.getDate() !== Number(day)
-    ) {
-      Alert.alert("تنبيه", "تاريخ الميلاد غير صحيح");
+    if (birth.error) {
+      setFormError(birth.error);
       return;
     }
 
@@ -132,105 +159,120 @@ export default function TeacherRegisterScreen({ navigation, route }) {
 
     try {
       const { fullName, email, phone, password } = registrationData;
+
       const nameParts = fullName.trim().split(/\s+/);
       const firstName = nameParts.shift() || "";
       const lastName = nameParts.join(" ");
 
-      // 1. Créer le compte Supabase Auth
-      const { data: signUpData, error: signUpError } =
-        await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              first_name: firstName,
-              last_name: lastName,
-              phone,
-              role: "TEACHER",
-            },
+      // Toutes les données partent dans signUp : un trigger SQL crée
+      // users + teacher_profiles (statut PENDING) côté serveur.
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            phone,
+            role: "TEACHER",
+            address: cleanAddress,
+            birth_date: birth.iso,
+            diploma: cleanDiploma,
+            experience_years: Number(cleanExperience),
           },
-        });
+        },
+      });
 
-      if (signUpError) throw signUpError;
+      if (error) throw error;
 
-      const user = signUpData.user;
-
-      if (!user) {
+      if (!data?.user) {
         throw new Error("Supabase n'a retourné aucun utilisateur.");
       }
 
-      // Sans session, les écritures protégées par RLS ne peuvent
-      // généralement pas être effectuées depuis cette page.
-      if (!signUpData.session) {
-        Alert.alert(
-          "Confirmation requise",
-          "Le compte a été créé. Confirmez votre adresse e-mail, puis connectez-vous pour terminer votre inscription.",
-        );
+      // Email déjà utilisé (Supabase ne renvoie pas d'erreur dans ce cas)
+      if (data.user.identities?.length === 0) {
+        setFormError(MSG.emailExists);
         return;
       }
 
-      // 2. Créer ou actualiser le profil principal.
-      // Si un trigger crée déjà cette ligne, vérifiez que les
-      // colonnes et les règles RLS permettent cet upsert.
-      const { error: userError } = await supabase.from("users").upsert(
-        {
-          id: user.id,
-          first_name: firstName,
-          last_name: lastName,
-          email: email.toLowerCase(),
-          phone,
-          role: "TEACHER",
-          status: "PENDING",
-        },
-        { onConflict: "id" },
-      );
+      // Si une session s'est ouverte (confirmation email désactivée),
+      // on la ferme : l'animatrice doit attendre la validation de l'admin.
+      if (data.session) {
+        await supabase.auth.signOut();
+      }
 
-      if (userError) throw userError;
-
-      // 3. Enregistrer les informations complémentaires.
-      const { error: profileError } = await supabase
-        .from("teacher_profiles")
-        .upsert(
-          {
-            user_id: user.id,
-            address: cleanAddress,
-            birth_date: formattedBirthDate,
-            diploma: cleanDiploma,
-            experience_years: Number(normalizedExperience),
-            status: "PENDING",
-          },
-          { onConflict: "user_id" },
-        );
-
-      if (profileError) throw profileError;
-
-      Alert.alert(
-        "تم استلام طلب التسجيل",
-        "تم إنشاء الحساب وحفظ معلوماتك بنجاح. طلبك الآن قيد المراجعة من طرف الإدارة.",
-      );
-    } catch (error) {
+      setNeedsEmailConfirmation(!data.session);
+      setSubmitted(true);
+    } catch (err) {
       console.error("Erreur inscription animatrice :", {
-        message: error.message,
-        code: error.code,
-        details: error.details,
+        message: err?.message,
+        code: err?.code,
+        status: err?.status,
       });
 
-      Alert.alert(
-        "تعذر إكمال التسجيل",
-        error.message || "حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.",
-      );
+      setFormError(getSignUpError(err));
     } finally {
       setSaving(false);
     }
   };
 
+  // =========================
+  // Écran de succès
+  // =========================
+
+  if (submitted) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={RED} />
+
+        <View style={styles.background}>
+          <View style={styles.circle1} />
+          <View style={styles.circle2} />
+        </View>
+
+        <View style={styles.successWrapper}>
+          <View style={styles.successCard}>
+            <View style={styles.successIcon}>
+              <Ionicons name="hourglass-outline" size={36} color={RED} />
+            </View>
+
+            <Text style={styles.successTitle}>تم استلام طلبك بنجاح</Text>
+
+            <Text style={styles.successText}>
+              حسابك قيد المراجعة من طرف الإدارة. سيتم تفعيله بعد الموافقة على
+              طلبك.
+            </Text>
+
+            {needsEmailConfirmation ? (
+              <View style={styles.infoBox}>
+                <Ionicons name="mail-outline" size={20} color={RED} />
+
+                <Text style={styles.infoText}>
+                  يرجى أيضاً تأكيد بريدك الإلكتروني عبر الرسالة التي وصلتك.
+                </Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => navigation.navigate(Routes.LOGIN)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.submitText}>العودة إلى تسجيل الدخول</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // =========================
+  // Formulaire
+  // =========================
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={RED} />
-
-      {/* =========================
-                RED BACKGROUND
-            ========================= */}
 
       <View style={styles.background}>
         <View style={styles.circle1} />
@@ -243,107 +285,66 @@ export default function TeacherRegisterScreen({ navigation, route }) {
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
-          {/* =========================
-                        WHITE CARD
-                    ========================= */}
-
           <View style={styles.card}>
-            {/* Teacher icon */}
-
             <View style={styles.topIcon}>
               <Text style={styles.teacherEmoji}>👩‍🏫</Text>
             </View>
 
-            {/* =========================
-                            TITLE
-                        ========================= */}
-
             <Text style={styles.title}>بالنسبة للمنشّطة/ة</Text>
-
             <Text style={styles.profileTitle}>لمحة عن الملف الشخصي</Text>
-
-            {/* =========================
-                            ADDRESS
-                        ========================= */}
 
             <Field
               label="العنوان"
               icon="location-outline"
-              placeholder=""
               value={address}
-              onChangeText={setAddress}
+              onChangeText={(text) => {
+                setAddress(text);
+                setFormError("");
+              }}
             />
-
-            {/* =========================
-                            BIRTH DATE
-                        ========================= */}
 
             <Field
               label="تاريخ الميلاد"
               icon="calendar-outline"
-              placeholder="تاريخ الميلاد"
+              placeholder="يوم/شهر/سنة"
               value={birthDate}
-              onChangeText={setBirthDate}
+              onChangeText={(text) => {
+                setBirthDate(formatBirthDateInput(text));
+                setFormError("");
+              }}
               keyboardType="numeric"
+              maxLength={10}
             />
-
-            {/* =========================
-                            DIPLOMA
-                        ========================= */}
 
             <Field
               label="الدبلوم / المؤهل"
               icon="school-outline"
-              placeholder=""
               value={diploma}
-              onChangeText={setDiploma}
+              onChangeText={(text) => {
+                setDiploma(text);
+                setFormError("");
+              }}
             />
-
-            {/* =========================
-                            EXPERIENCE
-                        ========================= */}
 
             <Field
               label="الخبرة المهنية"
               icon="briefcase-outline"
               placeholder="سنوات الخبرة"
               value={experience}
-              onChangeText={setExperience}
+              onChangeText={(text) => {
+                setExperience(text.replace(/\D/g, ""));
+                setFormError("");
+              }}
               keyboardType="numeric"
+              maxLength={2}
             />
 
-            {/* =========================
-                            CV
-                        ========================= */}
-
-            <Text style={styles.fieldLabel}>
-              اختياري: سيرة ذاتية / مستند داعم
-            </Text>
-
-            <TouchableOpacity
-              style={styles.cvContainer}
-              onPress={handlePickCV}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={cv ? "checkmark-circle" : "cloud-upload-outline"}
-                size={21}
-                color={cv ? "#55A868" : "#E4A0A7"}
-              />
-
-              <Text
-                style={[styles.cvText, !cv && styles.cvPlaceholder]}
-                numberOfLines={1}
-              >
-                {cv ? cv.name : ""}
-              </Text>
-            </TouchableOpacity>
-
-            {/* =========================
-                            BUTTON
-                        ========================= */}
+            {formError ? (
+              <Text style={styles.errorText}>{formError}</Text>
+            ) : null}
 
             <TouchableOpacity
               style={[styles.submitButton, saving && { opacity: 0.6 }]}
@@ -359,21 +360,6 @@ export default function TeacherRegisterScreen({ navigation, route }) {
                 <Ionicons name="arrow-forward" size={21} color="#FFFFFF" />
               )}
             </TouchableOpacity>
-
-            {/* =========================
-                            SKIP
-                        ========================= */}
-
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.skipText}>تخطي للوقت الحالي</Text>
-            </TouchableOpacity>
-
-            {/* =========================
-                            ADMIN INFO
-                        ========================= */}
 
             <View style={styles.infoBox}>
               <Ionicons
@@ -404,6 +390,7 @@ function Field({
   value,
   onChangeText,
   keyboardType,
+  maxLength,
 }) {
   return (
     <View style={styles.field}>
@@ -417,6 +404,7 @@ function Field({
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
+          maxLength={maxLength}
           textAlign="right"
         />
 
@@ -442,46 +430,32 @@ const styles = StyleSheet.create({
 
   background: {
     position: "absolute",
-
     top: 0,
     left: 0,
     right: 0,
-
     height: 230,
-
     backgroundColor: RED,
-
     overflow: "hidden",
   },
 
   circle1: {
     position: "absolute",
-
     width: 350,
     height: 350,
-
     borderRadius: 175,
-
     backgroundColor: "#D91F3A",
-
     opacity: 0.3,
-
     top: -200,
     right: -100,
   },
 
   circle2: {
     position: "absolute",
-
     width: 280,
     height: 280,
-
     borderRadius: 140,
-
     backgroundColor: "#FF6372",
-
     opacity: 0.2,
-
     top: 30,
     left: -150,
   },
@@ -494,40 +468,27 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: "#FFFFFF",
-
     borderTopLeftRadius: 38,
     borderTopRightRadius: 38,
-
     paddingHorizontal: 20,
     paddingTop: 15,
     paddingBottom: 25,
-
-    minHeight: 680,
-
+    minHeight: 640,
     alignItems: "center",
   },
 
   topIcon: {
     width: 66,
     height: 66,
-
     borderRadius: 33,
-
     backgroundColor: "#FFFFFF",
-
     justifyContent: "center",
     alignItems: "center",
-
     marginTop: -48,
-
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-
     elevation: 4,
   },
 
@@ -537,218 +498,148 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 24,
-
     fontWeight: "800",
-
     color: "#222222",
-
     marginTop: 7,
-
     textAlign: "center",
-
     writingDirection: "rtl",
   },
 
   profileTitle: {
     fontSize: 24,
-
     fontWeight: "800",
-
     color: "#222222",
-
     textAlign: "center",
-
     writingDirection: "rtl",
-  },
-
-  introText: {
-    fontSize: 14,
-
-    color: "#333333",
-
-    fontWeight: "600",
-
-    marginTop: 3,
-    marginBottom: 10,
-
-    textAlign: "right",
-
-    width: "100%",
-
-    writingDirection: "rtl",
+    marginBottom: 8,
   },
 
   field: {
     width: "100%",
-
-    marginBottom: 7,
+    marginBottom: 9,
   },
 
   fieldLabel: {
     width: "100%",
-
     fontSize: 14,
-
     fontWeight: "700",
-
     color: "#222222",
-
     marginBottom: 4,
-
     textAlign: "right",
-
     writingDirection: "rtl",
   },
 
   inputContainer: {
     width: "100%",
-
     minHeight: 40,
-
     borderWidth: 1,
-
     borderColor: "#E8C3C7",
-
     borderRadius: 8,
-
     backgroundColor: "#FFFDFD",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     paddingHorizontal: 10,
   },
 
   input: {
     flex: 1,
-
     height: 40,
-
     fontSize: 13,
-
     color: "#333333",
-
     writingDirection: "rtl",
   },
 
-  // =========================
-  // CV
-  // =========================
-
-  cvContainer: {
+  errorText: {
     width: "100%",
-
-    minHeight: 40,
-
-    borderWidth: 1,
-
-    borderColor: "#E8C3C7",
-
-    borderRadius: 8,
-
-    backgroundColor: "#FFFDFD",
-
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    paddingHorizontal: 10,
-  },
-
-  cvText: {
-    flex: 1,
-
-    marginLeft: 8,
-
-    fontSize: 12,
-
-    color: "#555555",
-
+    color: "#E53935",
+    fontSize: 13,
     textAlign: "right",
-
     writingDirection: "rtl",
+    marginTop: 4,
+    marginBottom: 4,
   },
-
-  cvPlaceholder: {
-    color: "#999999",
-  },
-
-  // =========================
-  // Submit
-  // =========================
 
   submitButton: {
     width: "80%",
-
     height: 47,
-
     backgroundColor: RED,
-
     borderRadius: 24,
-
-    marginTop: 10,
-
+    marginTop: 14,
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     gap: 8,
   },
 
   submitText: {
     color: "#FFFFFF",
-
     fontSize: 16,
-
     fontWeight: "700",
-
     writingDirection: "rtl",
   },
-
-  skipText: {
-    fontSize: 13,
-
-    color: "#E69BA3",
-
-    marginTop: 8,
-
-    writingDirection: "rtl",
-  },
-
-  // =========================
-  // Admin information
-  // =========================
 
   infoBox: {
     width: "100%",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     backgroundColor: "#FFF3F4",
-
     borderRadius: 10,
-
     padding: 10,
-
     marginTop: 15,
   },
 
   infoText: {
     flex: 1,
-
     fontSize: 11,
-
     color: "#777777",
-
     marginLeft: 7,
-
     textAlign: "right",
-
     writingDirection: "rtl",
+  },
+
+  // =========================
+  // Succès
+  // =========================
+
+  successWrapper: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+
+  successCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingHorizontal: 22,
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+
+  successIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "#FFF0F1",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  successTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#222222",
+    textAlign: "center",
+    writingDirection: "rtl",
+    marginBottom: 10,
+  },
+
+  successText: {
+    fontSize: 15,
+    lineHeight: 25,
+    color: "#555555",
+    textAlign: "center",
+    writingDirection: "rtl",
+    marginBottom: 8,
   },
 });

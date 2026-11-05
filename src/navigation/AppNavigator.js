@@ -1,4 +1,3 @@
-import { NavigationContainer } from "@react-navigation/native";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
@@ -9,30 +8,25 @@ import AuthNavigator from "./AuthNavigator";
 import ParentNavigator from "./ParentNavigator";
 import TeacherNavigator from "./TeacherNavigator";
 
+import AccountStatusScreen from "../screens/auth/AccountStatusScreen";
 import SplashScreen from "../screens/splash/SplashScreen";
 import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 
 import Routes from "../constants/routes";
 
 export default function AppNavigator() {
-  const { loading, user } = useAuth();
+  const { loading, user, accountNotice, logout } = useAuth();
 
   const [splashFinished, setSplashFinished] = useState(false);
   const [welcomeFinished, setWelcomeFinished] = useState(false);
   const [initialAuthRoute, setInitialAuthRoute] = useState(Routes.LOGIN);
 
-  // 1. Afficher le splash screen
+  // 1. Afficher le Splash Screen
   if (!splashFinished) {
-    return (
-      <SplashScreen
-        onFinish={() => {
-          setSplashFinished(true);
-        }}
-      />
-    );
+    return <SplashScreen onFinish={() => setSplashFinished(true)} />;
   }
 
-  // 2. Attendre la récupération de la session et du profil
+  // 2. Attendre le chargement de la session et du profil
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -41,7 +35,16 @@ export default function AppNavigator() {
     );
   }
 
-  // 3. Accueil pour les utilisateurs non connectés
+  // 3. Vérifier le statut de validation de l'animatrice
+  if (
+    user &&
+    user.role?.toUpperCase() === "TEACHER" &&
+    (accountNotice === "PENDING" || accountNotice === "REJECTED")
+  ) {
+    return <AccountStatusScreen status={accountNotice} onLogout={logout} />;
+  }
+
+  // 4. Accueil pour les utilisateurs non connectés
   if (!user && !welcomeFinished) {
     return (
       <WelcomeScreen
@@ -57,36 +60,25 @@ export default function AppNavigator() {
     );
   }
 
-  // 4. Afficher l'espace correspondant au rôle
-  const renderUserNavigator = () => {
-    switch (user?.role) {
-      case "ADMIN":
-        return <AdminNavigator />;
+  // 5. Redirection vers l'authentification
+  if (!user) {
+    return <AuthNavigator initialRouteName={initialAuthRoute} />;
+  }
 
-      case "TEACHER":
-        // Le statut APPROVED doit également être vérifié
-        // avant de permettre à l'animatrice d'accéder à son espace.
-        return <TeacherNavigator />;
+  // 6. Redirection selon le rôle
+  switch (user.role?.toUpperCase()) {
+    case "ADMIN":
+      return <AdminNavigator />;
 
-      case "PARENT":
-        return <ParentNavigator />;
+    case "TEACHER":
+      return <TeacherNavigator />;
 
-      default:
-        // Profil absent ou rôle inconnu :
-        // ne pas accorder d'accès privilégié.
-        return <AuthNavigator initialRouteName={Routes.LOGIN} />;
-    }
-  };
+    case "PARENT":
+      return <ParentNavigator />;
 
-  return (
-    <NavigationContainer>
-      {user ? (
-        renderUserNavigator()
-      ) : (
-        <AuthNavigator initialRouteName={initialAuthRoute} />
-      )}
-    </NavigationContainer>
-  );
+    default:
+      return <AuthNavigator initialRouteName={Routes.LOGIN} />;
+  }
 }
 
 const styles = StyleSheet.create({

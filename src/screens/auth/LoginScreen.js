@@ -15,7 +15,11 @@ import {
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import Routes from "../../constants/routes";
 import { useAuth } from "../../context/AuthContext";
-
+const ACCOUNT_NOTICES = {
+  PENDING:
+    "حسابك قيد المراجعة من طرف الإدارة. سيتم تفعيله بعد الموافقة على طلبك.",
+  REJECTED: "تم رفض طلب التسجيل الخاص بك. يرجى التواصل مع إدارة الروضة.",
+};
 const INVALID_CREDENTIALS_MSG =
   "البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق من بيانات الدخول والمحاولة مرة أخرى.";
 
@@ -30,7 +34,8 @@ const NETWORK_ERROR_MSG =
 const GENERIC_ERROR_MSG = "تعذر تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى.";
 
 export default function LoginScreen({ navigation }) {
-  const { login } = useAuth();
+  const { login, loginWithGoogle, accountNotice, clearAccountNotice } =
+    useAuth();
 
   // ==============================
   // STATES
@@ -113,6 +118,7 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = async () => {
     const cleanEmail = email.trim().toLowerCase();
 
+    clearAccountNotice();
     // Réinitialiser les erreurs
     setEmailError("");
     setPasswordError("");
@@ -238,7 +244,13 @@ export default function LoginScreen({ navigation }) {
               color="#777"
               style={styles.inputIcon}
             />
-
+            {accountNotice ? (
+              <View style={styles.noticeBox}>
+                <Text style={styles.noticeText}>
+                  {ACCOUNT_NOTICES[accountNotice]}
+                </Text>
+              </View>
+            ) : null}
             <TextInput
               value={email}
               onChangeText={(text) => {
@@ -505,7 +517,21 @@ const styles = StyleSheet.create({
     height: 116,
     borderRadius: 8,
   },
-
+  //box
+  noticeBox: {
+    width: "92%",
+    backgroundColor: "#FEF3C7",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  noticeText: {
+    color: "#92400E",
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: "right",
+    writingDirection: "rtl",
+  },
   // TITLES
 
   title: {

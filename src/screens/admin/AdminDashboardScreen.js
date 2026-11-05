@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
-  Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -11,6 +11,8 @@ import {
 } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
+import { confirmAction, notify } from "../../utils/dialogs";
 
 const COLORS = {
   primary: "#F52F46",
@@ -46,53 +48,78 @@ const MENU = [
 export default function AdminDashboardScreen({ navigation }) {
   const { logout } = useAuth();
 
-  const handleLogout = async () => {
-    console.log("🔴 Bouton déconnexion cliqué");
+  const [pendingCount, setPendingCount] = useState(0);
+  const [latestRequests, setLatestRequests] = useState([]);
 
-    // Confirmation adaptée au Web
-    if (Platform.OS === "web") {
-      const confirmed = window.confirm("هل أنت متأكد أنك تريد تسجيل الخروج؟");
+  // Demandes d'animatrices en attente
+  const loadPending = useCallback(async () => {
+    try {
+      const { data, count, error } = await supabase
+        .from("teacher_profiles")
+        .select("user_id", { count: "exact" })
+        .eq("status", "PENDING")
+        .order("created_at", { ascending: false })
+        .limit(3);
 
-      if (!confirmed) return;
-    } else {
-      // Confirmation Android / iOS
-      const confirmed = await new Promise((resolve) => {
-        Alert.alert(
-          "تسجيل الخروج",
-          "هل أنت متأكد أنك تريد تسجيل الخروج؟",
-          [
-            {
-              text: "إلغاء",
-              style: "cancel",
-              onPress: () => resolve(false),
-            },
-            {
-              text: "تسجيل الخروج",
-              style: "destructive",
-              onPress: () => resolve(true),
-            },
-          ],
-          { cancelable: true },
+      if (error) throw error;
+
+      setPendingCount(count ?? 0);
+
+      if (!data?.length) {
+        setLatestRequests([]);
+        return;
+      }
+
+      const { data: users, error: usersError } = await supabase
+        .from("users")
+        .select("id, first_name, last_name")
+        .in(
+          "id",
+          data.map((row) => row.user_id),
         );
-      });
 
-      if (!confirmed) return;
+      if (usersError) throw usersError;
+
+      const userById = Object.fromEntries(
+        (users || []).map((user) => [user.id, user]),
+      );
+
+      setLatestRequests(
+        data.map((row) => {
+          const user = userById[row.user_id];
+          const name = user
+            ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+            : "";
+
+          return { id: row.user_id, name: name || "منشّطة جديدة" };
+        }),
+      );
+    } catch (error) {
+      console.error("Erreur chargement demandes :", error);
     }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPending();
+    }, [loadPending]),
+  );
+
+  const handleLogout = async () => {
+    const confirmed = await confirmAction({
+      title: "تسجيل الخروج",
+      message: "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+      confirmText: "تسجيل الخروج",
+      destructive: true,
+    });
+
+    if (!confirmed) return;
 
     try {
-      console.log("🔄 Exécution de logout...");
-
       await logout();
-
-      console.log("✅ Déconnexion réussie");
     } catch (error) {
-      console.error("❌ Erreur logout :", error.message);
-
-      if (Platform.OS === "web") {
-        window.alert("تعذر تسجيل الخروج");
-      } else {
-        Alert.alert("خطأ", "تعذر تسجيل الخروج");
-      }
+      console.error("Erreur logout :", error.message);
+      notify("خطأ", "تعذر تسجيل الخروج");
     }
   };
 
@@ -129,29 +156,82 @@ export default function AdminDashboardScreen({ navigation }) {
           </Text>
         </View>
 
+        {/* Demandes d'inscription */}
+        <TouchableOpacity
+          style={styles.requestsCard}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate("TeacherManagement")}
+        >
+          <View style={styles.requestsHeader}>
+            <View
+              style={[
+                styles.requestsBadge,
+                pendingCount === 0 && styles.requestsBadgeEmpty,
+              ]}
+            >
+              <Text style={styles.requestsBadgeText}>{pendingCount}</Text>
+            </View>
+
+            <Text style={styles.requestsTitle}>طلبات تسجيل المنشّطات</Text>
+          </View>
+
+          {pendingCount === 0 ? (
+            <Text style={styles.requestsEmpty}>
+              لا توجد طلبات جديدة حالياً.
+            </Text>
+          ) : (
+            <>
+              {latestRequests.map((request) => (
+                <View key={request.id} style={styles.requestRow}>
+                  <Ionicons name="time-outline" size={16} color="#92400E" />
+                  <Text style={styles.requestName}>{request.name}</Text>
+                </View>
+              ))}
+
+              {pendingCount > latestRequests.length ? (
+                <Text style={styles.requestsMore}>
+                  و{pendingCount - latestRequests.length} طلبات أخرى
+                </Text>
+              ) : null}
+            </>
+          )}
+
+          <Text style={styles.requestsLink}>عرض الطلبات ومراجعتها</Text>
+        </TouchableOpacity>
+
         {/* Menu */}
         <Text style={styles.sectionTitle}>إدارة التطبيق</Text>
 
-        {MENU.map((item) => (
-          <TouchableOpacity
-            key={item.screen}
-            style={styles.card}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate(item.screen)}
-          >
-            <View style={styles.iconBox}>
-              <Ionicons name={item.icon} size={27} color={COLORS.primary} />
-            </View>
+        {MENU.map((item) => {
+          const badge = item.screen === "TeacherManagement" ? pendingCount : 0;
 
-            <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
+          return (
+            <TouchableOpacity
+              key={item.screen}
+              style={styles.card}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate(item.screen)}
+            >
+              <View style={styles.iconBox}>
+                <Ionicons name={item.icon} size={27} color={COLORS.primary} />
 
-              <Text style={styles.cardDescription}>{item.description}</Text>
-            </View>
+                {badge > 0 ? (
+                  <View style={styles.menuBadge}>
+                    <Text style={styles.menuBadgeText}>{badge}</Text>
+                  </View>
+                ) : null}
+              </View>
 
-            <Ionicons name="chevron-back" size={22} color={COLORS.muted} />
-          </TouchableOpacity>
-        ))}
+              <View style={styles.cardText}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+
+                <Text style={styles.cardDescription}>{item.description}</Text>
+              </View>
+
+              <Ionicons name="chevron-back" size={22} color={COLORS.muted} />
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -214,7 +294,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 22,
     alignItems: "flex-end",
-    marginBottom: 28,
+    marginBottom: 22,
   },
 
   avatar: {
@@ -240,6 +320,91 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 23,
     textAlign: "right",
+  },
+
+  // Demandes d'inscription
+  requestsCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 26,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+
+  requestsHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  requestsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.text,
+    textAlign: "right",
+  },
+
+  requestsBadge: {
+    minWidth: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+
+  requestsBadgeEmpty: {
+    backgroundColor: "#D6D3D1",
+  },
+
+  requestsBadgeText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+
+  requestsEmpty: {
+    color: COLORS.muted,
+    fontSize: 13,
+    textAlign: "right",
+    marginBottom: 10,
+  },
+
+  requestRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FEF3C7",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 8,
+  },
+
+  requestName: {
+    flex: 1,
+    color: "#92400E",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "right",
+  },
+
+  requestsMore: {
+    color: COLORS.muted,
+    fontSize: 12,
+    textAlign: "right",
+    marginBottom: 8,
+  },
+
+  requestsLink: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "bold",
+    textAlign: "right",
+    marginTop: 4,
   },
 
   sectionTitle: {
@@ -269,6 +434,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 13,
+  },
+
+  menuBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+
+  menuBadgeText: {
+    color: COLORS.white,
+    fontSize: 10,
+    fontWeight: "bold",
   },
 
   cardText: {
