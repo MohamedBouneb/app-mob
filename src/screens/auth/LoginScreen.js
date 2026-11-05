@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import Routes from "../../constants/routes";
 import { useAuth } from "../../context/AuthContext";
 const ACCOUNT_NOTICES = {
@@ -344,21 +344,11 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.separatorContainer}>
             <View style={styles.separator} />
 
-            <Text style={styles.separatorText}>أو سجل الدخول باستخدام</Text>
+            <Text style={styles.separatorText}>
+              مرحبا في روضة الياسمين بمساكن
+            </Text>
 
             <View style={styles.separator} />
-          </View>
-
-          {/* SOCIAL LOGIN */}
-
-          <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialButton}>
-              <Text style={styles.googleG}>G</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.socialButton}>
-              <FontAwesome name="facebook" size={30} color="#1877F2" />
-            </TouchableOpacity>
           </View>
 
           {/* LOGIN BUTTON */}
@@ -454,12 +444,12 @@ const styles = StyleSheet.create({
 
   card: {
     width: "100%",
-    minHeight: 730,
+    minHeight: 600,
     backgroundColor: "#FFFFFF",
     borderRadius: 32,
     paddingHorizontal: 16,
-    paddingTop: 70,
-    paddingBottom: 28,
+    paddingTop: 50,
+    paddingBottom: 60,
     alignItems: "center",
     overflow: "hidden",
   },
@@ -536,7 +526,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 30,
-    color: "#111111",
+    color: "#e6a963",
     fontWeight: "500",
     textAlign: "center",
     writingDirection: "rtl",
@@ -555,7 +545,7 @@ const styles = StyleSheet.create({
   // INPUTS
 
   inputContainer: {
-    width: "92%",
+    width: "90%",
     height: 46,
     backgroundColor: "#FFE9B3",
     borderRadius: 9,
@@ -667,29 +657,6 @@ const styles = StyleSheet.create({
     color: "#444444",
     marginHorizontal: 10,
     writingDirection: "rtl",
-  },
-
-  // SOCIAL
-
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 24,
-    marginBottom: 35,
-  },
-
-  socialButton: {
-    width: 38,
-    height: 38,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  googleG: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#4285F4",
   },
 
   // LOGIN BUTTON
