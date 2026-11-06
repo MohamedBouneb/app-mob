@@ -1,7 +1,6 @@
 const Routes = {
     LOGIN: "Login",
     REGISTER: "Register",
-
     ROLE_SELECTION: "RoleSelection",
 
     PARENT_REGISTER: "ParentRegister",

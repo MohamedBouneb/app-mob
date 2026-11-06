@@ -14,8 +14,11 @@ import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 
 import Routes from "../constants/routes";
 
+// Statuts qui bloquent l'accès à l'application
+const BLOCKED_STATUSES = ["PENDING", "REJECTED", "INACTIVE"];
+
 export default function AppNavigator() {
-  const { loading, user, accountNotice, logout } = useAuth();
+  const { loading, user, logout } = useAuth();
 
   const [splashFinished, setSplashFinished] = useState(false);
   const [welcomeFinished, setWelcomeFinished] = useState(false);
@@ -35,13 +38,11 @@ export default function AppNavigator() {
     );
   }
 
-  // 3. Vérifier le statut de validation de l'animatrice
-  if (
-    user &&
-    user.role?.toUpperCase() === "TEACHER" &&
-    (accountNotice === "PENDING" || accountNotice === "REJECTED")
-  ) {
-    return <AccountStatusScreen status={accountNotice} onLogout={logout} />;
+  // 3. Compte en attente, refusé ou désactivé : écran dédié
+  const accountStatus = String(user?.status || "").toUpperCase();
+
+  if (user && BLOCKED_STATUSES.includes(accountStatus)) {
+    return <AccountStatusScreen status={accountStatus} onLogout={logout} />;
   }
 
   // 4. Accueil pour les utilisateurs non connectés

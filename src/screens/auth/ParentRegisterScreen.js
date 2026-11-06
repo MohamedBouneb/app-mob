@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,43 +15,125 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import Routes from "../../constants/routes";
 import { supabase } from "../../lib/supabase";
+
 const RED = "#F52F46";
 
-export default function ParentRegisterScreen({ navigation, route }) {
-  const registrationData = route?.params?.registrationData;
-  console.log("📦 Registration data Parent :", registrationData);
+// ======================================================
+// FORMATAGE AUTOMATIQUE DE LA DATE DD/MM/YYYY
+// ======================================================
 
-  const [address, setAddress] = useState("");
-  const [childLastName, setChildLastName] = useState("");
-  const [childFirstName, setChildFirstName] = useState("");
+const formatBirthDate = (value) => {
+  const cleaned = value.replace(/\D/g, "").slice(0, 8);
+
+  if (cleaned.length <= 2) {
+    return cleaned;
+  }
+
+  if (cleaned.length <= 4) {
+    return `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+  }
+
+  return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4)}`;
+};
+
+// ======================================================
+// VALIDATION ET CONVERSION DE LA DATE
+// DD/MM/YYYY -> YYYY-MM-DD
+// ======================================================
+
+const parseBirthDate = (value) => {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return {
+    date,
+    iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+  };
+};
+
+// ======================================================
+// ÉCRAN INSCRIPTION PARENT
+// ======================================================
+
+export default function ParentRegisterScreen({ navigation, route }) {
+  // ======================================================
+  // INFORMATIONS DU PARENT
+  // ======================================================
+
+  const registrationData = route?.params?.registrationData;
+
+  // ======================================================
+  // INFORMATIONS DE L'ENFANT
+  // ======================================================
+
+  const [nomeleve, setNomeleve] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [relation, setRelation] = useState("");
 
+  // ======================================================
+  // ÉTATS
+  // ======================================================
+
+  const [loading, setLoading] = useState(false);
   const [relationModal, setRelationModal] = useState(false);
 
   const relations = ["الأب", "الأم", "الوصي", "الوصية", "أخرى"];
 
-  // =========================
-  // Submit
-  // =========================
+  // ======================================================
+  // CALCUL DE L'ÂGE
+  // ======================================================
+
+  const calculateAge = (date) => {
+    const today = new Date();
+
+    let age = today.getFullYear() - date.getFullYear();
+
+    const beforeBirthday =
+      today.getMonth() < date.getMonth() ||
+      (today.getMonth() === date.getMonth() &&
+        today.getDate() < date.getDate());
+
+    if (beforeBirthday) {
+      age--;
+    }
+
+    return age;
+  };
+
+  // ======================================================
+  // INSCRIPTION PARENT + ENFANT
+  // ======================================================
 
   const handleSubmit = async () => {
-    if (
-      !address ||
-      !childLastName ||
-      !childFirstName ||
-      !birthDate ||
-      !relation
-    ) {
-      Alert.alert("تنبيه", "يرجى ملء جميع المعلومات");
+    console.log("🚀 handleSubmit déclenché");
+
+    if (loading) {
       return;
     }
 
-    const registrationData = route?.params?.registrationData;
-
-    console.log("📦 Registration data Parent :", registrationData);
+    // --------------------------------------------------
+    // 1. Vérifier les informations du parent
+    // --------------------------------------------------
 
     if (!registrationData) {
       Alert.alert("خطأ", "بيانات التسجيل غير موجودة");
@@ -59,76 +142,208 @@ export default function ParentRegisterScreen({ navigation, route }) {
 
     const { fullName, email, password, phone } = registrationData;
 
-    // Séparer le nom complet
-    const nameParts = fullName.trim().split(/\s+/);
+    if (!fullName?.trim() || !email?.trim() || !password) {
+      Alert.alert("خطأ", "معلومات التسجيل غير مكتملة");
+      return;
+    }
 
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
+    console.log("✅ Informations parent OK");
 
-    console.log("👤 First name :", firstName);
-    console.log("👤 Last name :", lastName);
+    // --------------------------------------------------
+    // 2. Vérifier les informations de l'enfant
+    // --------------------------------------------------
+
+    console.log("👶 Nom enfant :", nomeleve);
+    console.log("📅 Date naissance :", birthDate);
+    console.log("👨‍👩‍👧 Relation :", relation);
+
+    if (!nomeleve.trim() || !birthDate.trim() || !relation) {
+      Alert.alert("تنبيه", "يرجى ملء جميع المعلومات");
+      return;
+    }
+
+    console.log("✅ Informations enfant OK");
+
+    // --------------------------------------------------
+    // 3. Vérifier et convertir la date
+    // --------------------------------------------------
+
+    const parsedBirthDate = parseBirthDate(birthDate.trim());
+
+    if (!parsedBirthDate) {
+      Alert.alert("تنبيه", "يرجى إدخال تاريخ ميلاد صحيح بصيغة DD/MM/YYYY");
+      return;
+    }
+
+    const parsedDate = parsedBirthDate.date;
+    const birthDateISO = parsedBirthDate.iso;
+
+    console.log("📅 Date utilisateur :", birthDate);
+    console.log("📅 Date ISO :", birthDateISO);
+
+    // --------------------------------------------------
+    // 4. Vérifier que la date n'est pas dans le futur
+    // --------------------------------------------------
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (parsedDate > today) {
+      Alert.alert("تنبيه", "تاريخ الميلاد لا يمكن أن يكون في المستقبل");
+      return;
+    }
+
+    // --------------------------------------------------
+    // 5. Calculer et vérifier l'âge
+    // --------------------------------------------------
+
+    const calculatedAge = calculateAge(parsedDate);
+
+    console.log("🎂 Âge calculé :", calculatedAge);
+
+    if (calculatedAge < 1 || calculatedAge > 6) {
+      Alert.alert("تنبيه", "عمر الطفل يجب أن يكون بين سنة واحدة و6 سنوات");
+      return;
+    }
+
+    // --------------------------------------------------
+    // 6. Séparer le nom du parent
+    // --------------------------------------------------
+
+    const parentNameParts = fullName.trim().split(/\s+/);
+
+    const parentFirstName = parentNameParts[0];
+    const parentLastName = parentNameParts.slice(1).join(" ");
+
+    if (!parentLastName) {
+      Alert.alert("تنبيه", "يرجى إدخال الاسم واللقب");
+      return;
+    }
+
+    // --------------------------------------------------
+    // 7. Séparer le nom de l'enfant
+    // --------------------------------------------------
+
+    const childNameParts = nomeleve.trim().split(/\s+/);
+
+    const childFirstName = childNameParts[0];
+    const childLastName = childNameParts.slice(1).join(" ");
+
+    if (!childLastName) {
+      Alert.alert("تنبيه", "يرجى إدخال اسم الطفل ولقبه");
+      return;
+    }
+
+    // --------------------------------------------------
+    // 8. Création du compte Supabase
+    // --------------------------------------------------
 
     try {
-      console.log("🔥 Création du compte Supabase...");
-      console.log("📧 Email reçu :", JSON.stringify(email));
-      console.log("📧 Email nettoyé :", JSON.stringify(email?.trim()));
-      console.log("📏 Longueur email :", email?.trim()?.length);
+      setLoading(true);
+
+      console.log("🔥 Début inscription Supabase");
+      console.log("📧 Email :", email);
+      console.log("👨 Parent :", fullName);
+      console.log("👶 Enfant :", nomeleve);
+      console.log("🎂 Naissance ISO :", birthDateISO);
+      console.log("🎂 Âge calculé :", calculatedAge);
+      console.log("🔗 Relation :", relation);
 
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
+        email: email.trim(),
+        password: password,
+
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
-            phone,
+            // Informations parent
+            first_name: parentFirstName,
+            last_name: parentLastName,
+            phone: phone || "",
             role: "PARENT",
+
+            // Informations enfant
+            child_first_name: childFirstName,
+            child_last_name: childLastName,
+            child_age: calculatedAge,
+            child_birth_date: birthDateISO,
+            relation: relation,
           },
         },
       });
 
+      // --------------------------------------------------
+      // 9. Vérifier la réponse Supabase
+      // --------------------------------------------------
+
+      console.log("📡 Réponse Supabase reçue");
+
+      console.log("❌ Erreur :", error?.message || "Aucune erreur");
+
+      console.log("👤 User ID :", data?.user?.id);
+
+      console.log("📦 Metadata :", data?.user?.user_metadata);
+
+      console.log("🔐 Session disponible :", !!data?.session);
+
+      // --------------------------------------------------
+      // 10. Gestion des erreurs Supabase
+      // --------------------------------------------------
+
       if (error) {
-        Alert.alert("Erreur", error.message);
+        console.error("❌ Erreur inscription :", error.message);
+
+        Alert.alert("خطأ", "حدث خطأ أثناء إنشاء الحساب: " + error.message);
+
         return;
       }
+
+      if (!data?.user) {
+        Alert.alert("خطأ", "تعذر إنشاء الحساب");
+        return;
+      }
+
+      // --------------------------------------------------
+      // 11. Confirmation de l'adresse email
+      // --------------------------------------------------
 
       if (!data.session) {
         Alert.alert(
-          "Inscription réussie",
-          "Veuillez confirmer votre adresse email avant de vous connecter.",
+          "تم التسجيل",
+          "يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.",
+          [
+            {
+              text: "حسناً",
+              onPress: () => navigation.navigate(Routes.LOGIN),
+            },
+          ],
         );
 
-        navigation.navigate(Routes.LOGIN);
         return;
       }
 
-      if (error) {
-        console.error("❌ Erreur Supabase Auth :", error);
+      // --------------------------------------------------
+      // 12. Inscription réussie
+      // --------------------------------------------------
 
-        Alert.alert("خطأ", error.message);
+      Alert.alert("نجاح", "تم إنشاء حسابك بنجاح!");
+    } catch (err) {
+      console.error("❌ Exception :", err?.message || err);
 
-        return;
-      }
-
-      console.log("✅ Supabase User :", data.user);
-
-      console.log("🔐 Supabase Session :", data.session);
-
-      Alert.alert("تم إنشاء الحساب", "تم إنشاء حسابك بنجاح.");
-    } catch (error) {
-      console.error("❌ Erreur inscription :", error);
-
-      Alert.alert("خطأ", "حدث خطأ أثناء إنشاء الحساب.");
+      Alert.alert("خطأ", "حدث خطأ غير متوقع أثناء التسجيل.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // ======================================================
+  // INTERFACE
+  // ======================================================
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={RED} />
 
-      {/* =========================
-                RED BACKGROUND
-            ========================= */}
+      {/* BACKGROUND */}
 
       <View style={styles.background}>
         <View style={styles.backgroundCircle1} />
@@ -142,15 +357,12 @@ export default function ParentRegisterScreen({ navigation, route }) {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* =========================
-                        WHITE CARD
-                    ========================= */}
+          {/* CARD */}
 
           <View style={styles.card}>
-            {/* =========================
-                            BACK BUTTON
-                        ========================= */}
+            {/* BACK BUTTON */}
 
             <TouchableOpacity
               style={styles.backButton}
@@ -160,99 +372,74 @@ export default function ParentRegisterScreen({ navigation, route }) {
               <Ionicons name="arrow-back" size={23} color="#333333" />
             </TouchableOpacity>
 
-            {/* Top icon */}
+            {/* ICON */}
+
             <View style={styles.topIcon}>
               <Text style={styles.familyEmoji}>👨‍👩‍👧</Text>
             </View>
 
-            {/* Title */}
+            {/* TITLE */}
 
-            <Text style={styles.title}>بالنسبة للولي</Text>
+            <Text style={styles.title}>بالنسبة للتلميذ(ة)</Text>
 
-            {/* =========================
-                            ADDRESS
-                        ========================= */}
+            {/* CHILD NAME */}
 
             <Field
-              label="العنوان"
-              icon="lock-closed-outline"
-              placeholder="أدخل عنوانك الكامل"
-              value={address}
-              onChangeText={setAddress}
+              label="اسم التلميذ(ة) ولقبه"
+              icon="person-outline"
+              placeholder="أدخل اسم التلميذ(ة) ولقبه"
+              value={nomeleve}
+              onChangeText={setNomeleve}
             />
 
-            {/* =========================
-                            CHILD LAST NAME
-                        ========================= */}
-
-            <Field
-              label="اسم الطفل"
-              icon={null}
-              placeholder="أدخل اسم عائلة الطفل"
-              value={childLastName}
-              onChangeText={setChildLastName}
-            />
-
-            {/* =========================
-                            CHILD FIRST NAME
-                        ========================= */}
-
-            <Field
-              label="الاسم الأول للطفل"
-              icon={null}
-              placeholder="أدخل الاسم الأول للطفل"
-              value={childFirstName}
-              onChangeText={setChildFirstName}
-            />
-
-            {/* =========================
-                            BIRTH DATE
-                        ========================= */}
+            {/* BIRTH DATE */}
 
             <Field
               label="تاريخ ميلاد الطفل"
               icon="calendar-outline"
-              placeholder="اختر تاريخ الميلاد"
+              placeholder="DD/MM/YYYY مثال: 14/01/2021"
               value={birthDate}
-              onChangeText={setBirthDate}
+              onChangeText={(value) => setBirthDate(formatBirthDate(value))}
               keyboardType="numeric"
+              maxLength={10}
             />
 
-            {/* =========================
-                            RELATION
-                        ========================= */}
+            {/* RELATION */}
 
-            <Text style={styles.fieldLabel}>الصلة بالطفل</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>الصلة بالطفل</Text>
 
-            <TouchableOpacity
-              style={styles.inputContainer}
-              onPress={() => setRelationModal(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chevron-down" size={19} color="#999999" />
-
-              <Text
-                style={[styles.selectText, !relation && styles.placeholder]}
+              <TouchableOpacity
+                style={styles.inputContainer}
+                onPress={() => setRelationModal(true)}
+                activeOpacity={0.8}
               >
-                {relation || "اختر علاقتك بالطفل (مثلاً: أب، أم، وصي)"}
-              </Text>
-            </TouchableOpacity>
+                <Ionicons name="chevron-down" size={19} color="#999999" />
 
-            {/* =========================
-                            BUTTON
-                        ========================= */}
+                <Text
+                  style={[styles.selectText, !relation && styles.placeholder]}
+                >
+                  {relation || "اختر علاقتك بالطفل (مثلاً: أب، أم، وصي)"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* SUBMIT BUTTON */}
 
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[styles.submitButton, loading && { opacity: 0.6 }]}
               onPress={handleSubmit}
+              disabled={loading}
               activeOpacity={0.85}
             >
-              <Text style={styles.submitText}>حفظ ومتابعة</Text>
+              <Text style={styles.submitText}>
+                {loading ? "جاري التسجيل..." : "حفظ ومتابعة"}
+              </Text>
 
               <Ionicons name="arrow-forward" size={21} color="#FFFFFF" />
             </TouchableOpacity>
 
-            {/* Bottom message */}
+            {/* SKIP */}
 
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -264,9 +451,7 @@ export default function ParentRegisterScreen({ navigation, route }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* =========================
-                RELATION MODAL
-            ========================= */}
+      {/* RELATION MODAL */}
 
       <Modal
         visible={relationModal}
@@ -312,6 +497,7 @@ function Field({
   value,
   onChangeText,
   keyboardType,
+  maxLength,
 }) {
   return (
     <View style={styles.field}>
@@ -328,6 +514,7 @@ function Field({
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           textAlign="right"
+          maxLength={maxLength}
         />
       </View>
     </View>
@@ -388,31 +575,28 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: "#FFFFFF",
-
-    borderTopLeftRadius: 38,
-    borderTopRightRadius: 38,
-
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     paddingHorizontal: 20,
     paddingTop: 15,
     paddingBottom: 25,
-
-    minHeight: 650,
-
+    minHeight: 600,
     alignItems: "center",
+  },
+
+  backButton: {
+    alignSelf: "flex-start",
+    padding: 5,
   },
 
   topIcon: {
     width: 66,
     height: 66,
     borderRadius: 33,
-
     backgroundColor: "#FFFFFF",
-
     justifyContent: "center",
     alignItems: "center",
-
     marginTop: -48,
-
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -420,7 +604,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-
     elevation: 4,
   },
 
@@ -432,72 +615,53 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "800",
     color: "#222222",
-
     marginTop: 8,
     marginBottom: 12,
-
     textAlign: "center",
     writingDirection: "rtl",
   },
 
   field: {
     width: "100%",
-    marginBottom: 7,
+    marginBottom: 12,
   },
 
   fieldLabel: {
     width: "100%",
-
     fontSize: 14,
     fontWeight: "700",
-
     color: "#222222",
-
     marginBottom: 4,
-
     textAlign: "right",
     writingDirection: "rtl",
   },
 
   inputContainer: {
     width: "100%",
-    minHeight: 40,
-
+    minHeight: 42,
     borderWidth: 1,
     borderColor: "#E8C3C7",
-
     borderRadius: 8,
-
     backgroundColor: "#FFFDFD",
-
     flexDirection: "row",
     alignItems: "center",
-
     paddingHorizontal: 10,
   },
 
   input: {
     flex: 1,
-
-    height: 40,
-
+    height: 42,
     fontSize: 13,
-
     color: "#333333",
-
     writingDirection: "rtl",
   },
 
   selectText: {
     flex: 1,
-
     fontSize: 12.5,
-
     color: "#333333",
-
     textAlign: "right",
     writingDirection: "rtl",
-
     marginLeft: 8,
   },
 
@@ -508,87 +672,63 @@ const styles = StyleSheet.create({
   submitButton: {
     width: "80%",
     height: 47,
-
     backgroundColor: RED,
-
     borderRadius: 24,
-
     marginTop: 10,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-
     gap: 8,
   },
 
   submitText: {
     color: "#FFFFFF",
-
     fontSize: 16,
     fontWeight: "700",
-
     writingDirection: "rtl",
   },
 
   skipText: {
     fontSize: 13,
-
     color: "#E69BA3",
-
-    marginTop: 8,
-
+    marginTop: 12,
     writingDirection: "rtl",
   },
 
-  // =========================
-  // Modal
-  // =========================
+  // MODAL
 
   modalOverlay: {
     flex: 1,
-
     backgroundColor: "rgba(0,0,0,0.4)",
-
     justifyContent: "center",
     alignItems: "center",
   },
 
   modalContainer: {
     width: "85%",
-
     backgroundColor: "#FFFFFF",
-
     borderRadius: 20,
-
     padding: 20,
   },
 
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-
     textAlign: "center",
-
     marginBottom: 15,
-
     writingDirection: "rtl",
   },
 
   relationItem: {
     paddingVertical: 14,
-
     borderBottomWidth: 1,
     borderBottomColor: "#EEEEEE",
   },
 
   relationText: {
     fontSize: 16,
-
     color: "#333333",
-
     textAlign: "center",
-
     writingDirection: "rtl",
   },
 });

@@ -4,54 +4,18 @@ import { useCallback, useState } from "react";
 
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
 import { supabase } from "../../lib/supabase";
-async function testCourses() {
-  try {
-    const { data, error, count, status } = await supabase
-      .from("courses")
-      .select("id", { count: "exact" });
+import { notify } from "../../utils/dialogs";
 
-    console.log("========== TEST COURSES ==========");
-    console.log("Data :", data);
-    console.log("Count :", count);
-    console.log("Status :", status);
-    console.log("Error :", error);
-
-    if (error) {
-      console.log("Message :", error.message);
-      console.log("Code :", error.code);
-      console.log("Details :", error.details);
-      console.log("Hint :", error.hint);
-    }
-
-    console.log("==================================");
-  } catch (err) {
-    console.log("EXCEPTION COURSES :", err);
-    console.log("Exception message :", String(err));
-    console.log("Stack :", err?.stack);
-  }
-}
-
-async function testAdminRole() {
-  const { data: sessionData } = await supabase.auth.getSession();
-
-  console.log("Utilisateur connecté :", sessionData.session?.user?.id);
-
-  const { data, error } = await supabase.rpc("get_my_role");
-
-  console.log("Rôle Supabase :", data);
-  console.log("Erreur rôle :", error);
-}
-
-export default function StatisticsScreen() {
+export default function StatisticsScreen({ navigation }) {
   const [stats, setStats] = useState({
     parents: 0,
     teachers: 0,
@@ -79,10 +43,11 @@ export default function StatisticsScreen() {
             .select("id", { count: "exact", head: true }),
         },
         {
-          name: "Enseignantes",
+          name: "Animatrices approuvées",
           request: supabase
-            .from("teachers")
-            .select("id", { count: "exact", head: true }),
+            .from("teacher_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "APPROVED"),
         },
         {
           name: "Demandes en attente",
@@ -111,7 +76,6 @@ export default function StatisticsScreen() {
         },
       ];
 
-      // Exécuter les requêtes
       const results = await Promise.all(
         queries.map(async (query) => ({
           name: query.name,
@@ -119,27 +83,19 @@ export default function StatisticsScreen() {
         })),
       );
 
-      // Vérifier les erreurs
-      results.forEach(({ name, result }) => {
-        if (result.error) {
-          console.error(`Erreur ${name}:`, {
-            message: result.error.message,
-            code: result.error.code,
-            details: result.error.details,
-            hint: result.error.hint,
-          });
-        } else {
-          console.log(`${name}: ${result.count}`);
-        }
-      });
-
       const failed = results.find(({ result }) => result.error);
 
       if (failed) {
+        console.error(`Erreur ${failed.name}:`, {
+          message: failed.result.error.message,
+          code: failed.result.error.code,
+          details: failed.result.error.details,
+          hint: failed.result.error.hint,
+        });
+
         throw failed.result.error;
       }
 
-      // Mettre à jour les statistiques
       setStats({
         parents: results[0].result.count ?? 0,
         teachers: results[1].result.count ?? 0,
@@ -151,7 +107,7 @@ export default function StatisticsScreen() {
     } catch (error) {
       console.error("Erreur statistiques :", error);
 
-      Alert.alert("خطأ", "تعذر تحميل الإحصائيات. يرجى المحاولة مرة أخرى.");
+      notify("خطأ", "تعذر تحميل الإحصائيات. يرجى المحاولة مرة أخرى.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -161,12 +117,10 @@ export default function StatisticsScreen() {
   // Recharger à chaque ouverture de l'écran
   useFocusEffect(
     useCallback(() => {
-      testCourses();
       loadStats();
     }, [loadStats]),
   );
 
-  // Chargement
   if (loading) {
     return (
       <View style={styles.center}>
@@ -176,7 +130,7 @@ export default function StatisticsScreen() {
     );
   }
 
-  // Cartes statistiques
+  // Cartes statistiques (screen = écran ouvert au clic, absent = non cliquable)
   const items = [
     {
       label: "أولياء الأمور",
@@ -184,13 +138,16 @@ export default function StatisticsScreen() {
       icon: "people-outline",
       color: "#2563EB",
       background: "#EFF6FF",
+      screen: "ParentManagement",
     },
     {
-      label: "ملفات المنشّطات",
+      label: "المنشّطات المعتمدات",
       value: stats.teachers,
       icon: "school-outline",
       color: "#7C3AED",
       background: "#F5F3FF",
+      screen: "TeacherManagement",
+      params: { initialFilter: "APPROVED" },
     },
     {
       label: "طلبات قيد المراجعة",
@@ -198,6 +155,8 @@ export default function StatisticsScreen() {
       icon: "time-outline",
       color: "#D97706",
       background: "#FFFBEB",
+      screen: "TeacherManagement",
+      params: { initialFilter: "PENDING" },
     },
     {
       label: "الدروس",
@@ -205,6 +164,7 @@ export default function StatisticsScreen() {
       icon: "book-outline",
       color: "#15803D",
       background: "#F0FDF4",
+      screen: "CourseManagement",
     },
     {
       label: "الأطفال المسجلون",
@@ -212,6 +172,8 @@ export default function StatisticsScreen() {
       icon: "happy-outline",
       color: "#DB2777",
       background: "#FDF2F8",
+      screen: "ParentManagement",
+      params: { expandAll: true },
     },
     {
       label: "التمارين",
@@ -236,27 +198,45 @@ export default function StatisticsScreen() {
     >
       <Text style={styles.heading}>ملخص نشاط الروضة</Text>
 
-      <Text style={styles.subtitle}>
-        الأرقام الحالية المسجلة في قاعدة البيانات
-      </Text>
+      <Text style={styles.subtitle}>اضغط على أي بطاقة لعرض التفاصيل</Text>
 
       <View style={styles.grid}>
-        {items.map((item) => (
-          <View style={styles.card} key={item.label}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: item.background },
-              ]}
+        {items.map((item) => {
+          const clickable = !!item.screen;
+
+          return (
+            <TouchableOpacity
+              key={item.label}
+              style={styles.card}
+              activeOpacity={clickable ? 0.8 : 1}
+              disabled={!clickable}
+              onPress={() => navigation.navigate(item.screen, item.params)}
             >
-              <Ionicons name={item.icon} size={27} color={item.color} />
-            </View>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: item.background },
+                ]}
+              >
+                <Ionicons name={item.icon} size={27} color={item.color} />
+              </View>
 
-            <Text style={styles.value}>{item.value}</Text>
+              <Text style={styles.value}>{item.value}</Text>
 
-            <Text style={styles.label}>{item.label}</Text>
-          </View>
-        ))}
+              <Text style={styles.label}>{item.label}</Text>
+
+              {clickable ? (
+                <View style={styles.detailsRow}>
+                  <Text style={[styles.detailsText, { color: item.color }]}>
+                    عرض التفاصيل
+                  </Text>
+
+                  <Ionicons name="chevron-back" size={14} color={item.color} />
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={styles.footer}>
@@ -330,6 +310,18 @@ const styles = StyleSheet.create({
     color: "#78716C",
     marginTop: 6,
     textAlign: "right",
+  },
+
+  detailsRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 2,
+    marginTop: 10,
+  },
+
+  detailsText: {
+    fontSize: 11,
+    fontWeight: "bold",
   },
 
   footer: {

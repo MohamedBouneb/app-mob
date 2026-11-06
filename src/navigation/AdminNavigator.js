@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
 import CourseManagementScreen from "../screens/admin/CourseManagementScreen";
+import ParentManagementScreen from "../screens/admin/ParentManagementScreen";
 import StatisticsScreen from "../screens/admin/StatisticsScreen";
 import TeacherManagementScreen from "../screens/admin/TeacherManagementScreen";
 
@@ -23,7 +24,11 @@ export default function AdminNavigator() {
         component={AdminDashboardScreen}
         options={{ title: "فضاء الإدارة", headerBackVisible: false }}
       />
-
+      <Stack.Screen
+        name="ParentManagement"
+        component={ParentManagementScreen}
+        options={{ title: "أولياء الأمور" }}
+      />
       <Stack.Screen
         name="TeacherManagement"
         component={TeacherManagementScreen}
