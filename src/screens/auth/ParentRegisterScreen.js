@@ -302,24 +302,36 @@ export default function ParentRegisterScreen({ navigation, route }) {
         return;
       }
 
-      // --------------------------------------------------
-      // 11. Confirmation de l'adresse email
-      // --------------------------------------------------
+      if (error) {
+        console.error("Erreur inscription :", error.message);
 
-      if (!data.session) {
-        Alert.alert(
-          "تم التسجيل",
-          "يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.",
-          [
-            {
-              text: "حسناً",
-              onPress: () => navigation.navigate(Routes.LOGIN),
-            },
-          ],
-        );
+        Alert.alert("خطأ", "حدث خطأ أثناء إنشاء الحساب: " + error.message);
 
         return;
       }
+
+      if (!data?.user) {
+        Alert.alert("خطأ", "تعذر إنشاء الحساب");
+        return;
+      }
+
+      // 12. Vérifier la confirmation par email
+
+      if (!data.session) {
+        navigation.replace(Routes.EMAIL_CONFIRMATION, {
+          email: email.trim().toLowerCase(),
+        });
+
+        return;
+      }
+
+      // Si une session existe, la confirmation email
+      // n'est probablement pas activée dans Supabase.
+
+      Alert.alert(
+        "تنبيه",
+        "تم إنشاء الحساب، لكن تأكيد البريد الإلكتروني غير مفعل.",
+      );
 
       // --------------------------------------------------
       // 12. Inscription réussie

@@ -1,22 +1,23 @@
 const Routes = {
-    LOGIN: "Login",
-    REGISTER: "Register",
-    ROLE_SELECTION: "RoleSelection",
+  LOGIN: "Login",
+  REGISTER: "Register",
+  ROLE_SELECTION: "RoleSelection",
 
-    PARENT_REGISTER: "ParentRegister",
-    TEACHER_REGISTER: "TeacherRegister",
+  PARENT_REGISTER: "ParentRegister",
+  TEACHER_REGISTER: "TeacherRegister",
 
-    FORGOT_PASSWORD: "ForgotPassword",
-    VERIFY_CODE: "VerifyCode",
-    RESET_PASSWORD: "ResetPassword",
+  FORGOT_PASSWORD: "ForgotPassword",
+  VERIFY_CODE: "VerifyCode",
+  RESET_PASSWORD: "ResetPassword",
 
-    ADMIN: "Admin",
-    TEACHER: "Teacher",
-    PARENT: "Parent",
+  ADMIN: "Admin",
+  TEACHER: "Teacher",
+  PARENT: "Parent",
 
-    Home: "Home",
+  Home: "Home",
 
-    ACCOUNT_CREATED: "AccountCreated",
+  EMAIL_CONFIRMATION: "EMAIL_CONFIRMATION",
+  ACCOUNT_CREATED: "AccountCreated",
 };
 
 export default Routes;

@@ -1,8 +1,5 @@
-import React from "react";
 
-import {
-    createNativeStackNavigator
-} from "@react-navigation/native-stack";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import Routes from "../constants/routes";
 
@@ -18,108 +15,90 @@ import RoleSelectionScreen from "../screens/auth/RoleSelectionScreen";
 // Registration
 // =========================
 
+import AccountCreatedScreen from "../screens/auth/AccountCreatedScreen";
 import ParentRegisterScreen from "../screens/auth/ParentRegisterScreen";
 import TeacherRegisterScreen from "../screens/auth/TeacherRegisterScreen";
-import AccountCreatedScreen from "../screens/auth/AccountCreatedScreen";
 
 // =========================
 // Password
 // =========================
 
 import FargotPasswordScreen from "../screens/auth/FargotPasswordScreen";
-import VerifyCodeScreen from "../screens/auth/VerifyCodeScreen";
 import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
+import VerifyCodeScreen from "../screens/auth/VerifyCodeScreen";
 
-
+import EmailConfirmationScreen from "../screens/auth/EmailConfirmationScreen";
 const Stack = createNativeStackNavigator();
 
+export default function AuthNavigator({ initialRouteName }) {
+  return (
+    <Stack.Navigator
+      initialRouteName={initialRouteName || Routes.LOGIN}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      {/* Login */}
 
-export default function AuthNavigator({
-    initialRouteName
-}) {
+      <Stack.Screen name={Routes.LOGIN} component={LoginScreen} />
 
-    return (
+      {/* Register */}
 
-        <Stack.Navigator
-            initialRouteName={
-                initialRouteName || Routes.LOGIN
-            }
-            screenOptions={{
-                headerShown: false,
-            }}
-        >
+      <Stack.Screen name={Routes.REGISTER} component={RegisterScreen} />
 
-            {/* Login */}
+      {/* Role Selection */}
 
-            <Stack.Screen
-                name={Routes.LOGIN}
-                component={LoginScreen}
-            />
+      <Stack.Screen
+        name={Routes.ROLE_SELECTION}
+        component={RoleSelectionScreen}
+      />
 
+      {/* Parent Register */}
 
-            {/* Register */}
+      <Stack.Screen
+        name={Routes.PARENT_REGISTER}
+        component={ParentRegisterScreen}
+      />
 
-            <Stack.Screen
-                name={Routes.REGISTER}
-                component={RegisterScreen}
-            />
+      {/* Teacher Register */}
 
+      <Stack.Screen
+        name={Routes.TEACHER_REGISTER}
+        component={TeacherRegisterScreen}
+      />
 
-            {/* Role Selection */}
+      {/* Account Created */}
 
-            <Stack.Screen
-                name={Routes.ROLE_SELECTION}
-                component={RoleSelectionScreen}
-            />
+      <Stack.Screen
+        name={Routes.ACCOUNT_CREATED}
+        component={AccountCreatedScreen}
+      />
 
+      {/* Forgot Password */}
 
-            {/* Parent Register */}
+      <Stack.Screen
+        name={Routes.FORGOT_PASSWORD}
+        component={FargotPasswordScreen}
+      />
 
-            <Stack.Screen
-                name={Routes.PARENT_REGISTER}
-                component={ParentRegisterScreen}
-            />
+      {/* Verify Code */}
 
+      <Stack.Screen name={Routes.VERIFY_CODE} component={VerifyCodeScreen} />
 
-            {/* Teacher Register */}
+      {/* Reset Password */}
 
-            <Stack.Screen
-                name={Routes.TEACHER_REGISTER}
-                component={TeacherRegisterScreen}
-            />
+      <Stack.Screen
+        name={Routes.RESET_PASSWORD}
+        component={ResetPasswordScreen}
+      />
 
-
-            {/* Account Created */}
-
-            <Stack.Screen
-                name={Routes.ACCOUNT_CREATED}
-                component={AccountCreatedScreen}
-            />
-
-
-            {/* Forgot Password */}
-
-            <Stack.Screen
-                name={Routes.FORGOT_PASSWORD}
-                component={FargotPasswordScreen}
-            />
-
-
-            {/* Verify Code */}
-
-            <Stack.Screen
-                name={Routes.VERIFY_CODE}
-                component={VerifyCodeScreen}
-            />
-
-
-            {/* Reset Password */}
-
-            <Stack.Screen
-                name={Routes.RESET_PASSWORD}
-                component={ResetPasswordScreen}
-            />
-
-        </Stack.Navigator>
-    );
+      <Stack.Screen
+        name={Routes.EMAIL_CONFIRMATION}
+        component={EmailConfirmationScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
+  );
 }
