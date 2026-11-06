@@ -26,7 +26,7 @@ const COLORS = {
 
 const MENU = [
   {
-    title: "إدارة المنشّطات",
+    title: "إدارة المنشط",
     description: "مراجعة طلبات التسجيل وقبول المنشّطات",
     icon: "people-outline",
     screen: "TeacherManagement",
@@ -149,7 +149,7 @@ export default function AdminDashboardScreen({ navigation }) {
             <Ionicons name="shield-checkmark" size={32} color="#FFFFFF" />
           </View>
 
-          <Text style={styles.welcomeTitle}>مرحباً بك، مدير الروضة 👋</Text>
+          <Text style={styles.welcomeTitle}>مرحباً بك، مدير الروضة </Text>
 
           <Text style={styles.welcomeText}>
             يمكنك إدارة الدروس ومتابعة طلبات التسجيل من هنا.
