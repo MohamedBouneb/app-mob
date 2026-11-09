@@ -38,6 +38,12 @@ const MENU = [
     screen: "CourseManagement",
   },
   {
+    title: "إدارة الإعلانات والرسائل",
+    description: "إرسال الأخبار والإعلانات للأولياء والمنشّطات",
+    icon: "megaphone-outline",
+    screen: "AdminAnnouncements",
+  },
+  {
     title: "الإحصائيات والتقارير",
     description: "متابعة نشاط التطبيق",
     icon: "stats-chart-outline",
@@ -51,7 +57,10 @@ export default function AdminDashboardScreen({ navigation }) {
   const [pendingCount, setPendingCount] = useState(0);
   const [latestRequests, setLatestRequests] = useState([]);
 
+  // ====================================
   // Demandes d'animatrices en attente
+  // ====================================
+
   const loadPending = useCallback(async () => {
     try {
       const { data, count, error } = await supabase
@@ -87,11 +96,15 @@ export default function AdminDashboardScreen({ navigation }) {
       setLatestRequests(
         data.map((row) => {
           const user = userById[row.user_id];
+
           const name = user
             ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
             : "";
 
-          return { id: row.user_id, name: name || "منشّطة جديدة" };
+          return {
+            id: row.user_id,
+            name: name || "منشّطة جديدة",
+          };
         }),
       );
     } catch (error) {
@@ -104,6 +117,10 @@ export default function AdminDashboardScreen({ navigation }) {
       loadPending();
     }, [loadPending]),
   );
+
+  // ====================================
+  // Déconnexion
+  // ====================================
 
   const handleLogout = async () => {
     const confirmed = await confirmAction({
@@ -123,13 +140,26 @@ export default function AdminDashboardScreen({ navigation }) {
     }
   };
 
+  // ====================================
+  // Navigation vers une rubrique
+  // ====================================
+
+  const handleNavigation = (screen) => {
+    navigation.navigate(screen);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* En-tête */}
+
         <View style={styles.header}>
           <View style={styles.headerTitle}>
             <Text style={styles.headerText}>لوحة الإدارة</Text>
+
             <Text style={styles.headerSubtitle}>روضة الياسمين بمساكن</Text>
           </View>
 
@@ -139,17 +169,19 @@ export default function AdminDashboardScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Ionicons name="log-out-outline" size={21} color={COLORS.danger} />
+
             <Text style={styles.logoutText}>تسجيل الخروج</Text>
           </TouchableOpacity>
         </View>
 
         {/* Welcome */}
+
         <View style={styles.welcome}>
           <View style={styles.avatar}>
             <Ionicons name="shield-checkmark" size={32} color="#FFFFFF" />
           </View>
 
-          <Text style={styles.welcomeTitle}>مرحباً بك، مدير الروضة </Text>
+          <Text style={styles.welcomeTitle}>مرحباً بك، مدير الروضة</Text>
 
           <Text style={styles.welcomeText}>
             يمكنك إدارة الدروس ومتابعة طلبات التسجيل من هنا.
@@ -157,10 +189,11 @@ export default function AdminDashboardScreen({ navigation }) {
         </View>
 
         {/* Demandes d'inscription */}
+
         <TouchableOpacity
           style={styles.requestsCard}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate("TeacherManagement")}
+          onPress={() => handleNavigation("TeacherManagement")}
         >
           <View style={styles.requestsHeader}>
             <View
@@ -184,6 +217,7 @@ export default function AdminDashboardScreen({ navigation }) {
               {latestRequests.map((request) => (
                 <View key={request.id} style={styles.requestRow}>
                   <Ionicons name="time-outline" size={16} color="#92400E" />
+
                   <Text style={styles.requestName}>{request.name}</Text>
                 </View>
               ))}
@@ -200,6 +234,7 @@ export default function AdminDashboardScreen({ navigation }) {
         </TouchableOpacity>
 
         {/* Menu */}
+
         <Text style={styles.sectionTitle}>إدارة التطبيق</Text>
 
         {MENU.map((item) => {
@@ -210,7 +245,7 @@ export default function AdminDashboardScreen({ navigation }) {
               key={item.screen}
               style={styles.card}
               activeOpacity={0.8}
-              onPress={() => navigation.navigate(item.screen)}
+              onPress={() => handleNavigation(item.screen)}
             >
               <View style={styles.iconBox}>
                 <Ionicons name={item.icon} size={27} color={COLORS.primary} />
@@ -237,6 +272,10 @@ export default function AdminDashboardScreen({ navigation }) {
   );
 }
 
+// ======================================
+// Styles
+// ======================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -244,236 +283,222 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    padding: 20,
-    paddingBottom: 35,
+    padding: 16,
+    paddingBottom: 30,
   },
 
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 22,
+    marginBottom: 20,
   },
 
   headerTitle: {
-    alignItems: "flex-end",
+    flex: 1,
   },
 
   headerText: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 23,
+    fontWeight: "800",
     color: COLORS.text,
+    textAlign: "right",
   },
 
   headerSubtitle: {
     fontSize: 12,
     color: COLORS.muted,
     marginTop: 4,
+    textAlign: "right",
   },
 
   logoutButton: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEECEC",
-    borderWidth: 1,
-    borderColor: "#FECACA",
+    backgroundColor: "#FEE2E2",
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
-    gap: 6,
+    gap: 5,
   },
 
   logoutText: {
+    fontSize: 12,
     color: COLORS.danger,
-    fontSize: 13,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
 
   welcome: {
     backgroundColor: COLORS.primary,
-    borderRadius: 22,
-    padding: 22,
-    alignItems: "flex-end",
-    marginBottom: 22,
+    borderRadius: 18,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 20,
   },
 
   avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
-  },
-
-  welcomeTitle: {
-    color: COLORS.white,
-    fontSize: 21,
-    fontWeight: "bold",
-    textAlign: "right",
-    marginBottom: 8,
-  },
-
-  welcomeText: {
-    color: COLORS.white,
-    fontSize: 14,
-    lineHeight: 23,
-    textAlign: "right",
-  },
-
-  // Demandes d'inscription
-  requestsCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 26,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-
-  requestsHeader: {
-    flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "space-between",
     marginBottom: 12,
   },
 
-  requestsTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: COLORS.text,
-    textAlign: "right",
+  welcomeTitle: {
+    fontSize: 18,
+    color: COLORS.white,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+
+  welcomeText: {
+    fontSize: 12,
+    color: COLORS.white,
+    opacity: 0.9,
+    marginTop: 7,
+    textAlign: "center",
+  },
+
+  requestsCard: {
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+
+  requestsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
 
   requestsBadge: {
     minWidth: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
+    backgroundColor: "#F59E0B",
     justifyContent: "center",
-    paddingHorizontal: 8,
+    alignItems: "center",
+    paddingHorizontal: 7,
   },
 
   requestsBadgeEmpty: {
-    backgroundColor: "#D6D3D1",
+    backgroundColor: "#D1D5DB",
   },
 
   requestsBadgeText: {
     color: COLORS.white,
-    fontWeight: "bold",
-    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  requestsTitle: {
+    fontSize: 15,
+    color: "#92400E",
+    fontWeight: "800",
   },
 
   requestsEmpty: {
     color: COLORS.muted,
-    fontSize: 13,
+    fontSize: 12,
     textAlign: "right",
-    marginBottom: 10,
   },
 
   requestRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-end",
     gap: 8,
-    backgroundColor: "#FEF3C7",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    marginBottom: 8,
+    paddingVertical: 5,
   },
 
   requestName: {
-    flex: 1,
-    color: "#92400E",
+    color: COLORS.text,
     fontSize: 13,
-    fontWeight: "600",
-    textAlign: "right",
   },
 
   requestsMore: {
-    color: COLORS.muted,
-    fontSize: 12,
     textAlign: "right",
-    marginBottom: 8,
+    color: "#92400E",
+    fontSize: 12,
+    marginTop: 5,
   },
 
   requestsLink: {
     color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "800",
     textAlign: "right",
-    marginTop: 4,
+    marginTop: 12,
   },
 
   sectionTitle: {
+    fontSize: 17,
+    fontWeight: "800",
     color: COLORS.text,
-    fontSize: 19,
-    fontWeight: "bold",
     textAlign: "right",
-    marginBottom: 14,
+    marginBottom: 13,
   },
 
   card: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 13,
+    borderRadius: 15,
+    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 12,
   },
 
   iconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 15,
+    width: 50,
+    height: 50,
     backgroundColor: "#FFF0F1",
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 13,
+    position: "relative",
   },
 
   menuBadge: {
     position: "absolute",
-    top: -6,
-    right: -6,
-    minWidth: 20,
-    height: 20,
+    top: -5,
+    right: -5,
+    backgroundColor: COLORS.danger,
+    minWidth: 19,
+    height: 19,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 5,
-    borderWidth: 2,
-    borderColor: COLORS.white,
   },
 
   menuBadgeText: {
     color: COLORS.white,
     fontSize: 10,
-    fontWeight: "bold",
+    fontWeight: "800",
   },
 
   cardText: {
     flex: 1,
-    alignItems: "flex-end",
   },
 
   cardTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
     color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "800",
     textAlign: "right",
-    marginBottom: 5,
   },
 
   cardDescription: {
-    fontSize: 12,
     color: COLORS.muted,
+    fontSize: 11,
+    marginTop: 5,
     textAlign: "right",
-    lineHeight: 19,
   },
 });

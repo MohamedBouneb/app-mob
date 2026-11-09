@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import AdminAnnouncementsScreen from "../screens/admin/AdminAnnouncementsScreen";
 import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
 import CourseManagementScreen from "../screens/admin/CourseManagementScreen";
 import ParentManagementScreen from "../screens/admin/ParentManagementScreen";
@@ -45,6 +46,12 @@ export default function AdminNavigator() {
         name="Statistics"
         component={StatisticsScreen}
         options={{ title: "الإحصائيات والتقارير" }}
+      />
+
+      <Stack.Screen
+        name="AdminAnnouncements"
+        component={AdminAnnouncementsScreen}
+        options={{ title: "إدارة الإعلانات والرسائل" }}
       />
     </Stack.Navigator>
   );
