@@ -1,91 +1,82 @@
+
 import { supabase } from "../lib/supabase";
 
 // ======================================
-// Récupérer toutes les annonces
+// Récupérer les annonces selon le rôle
 // ======================================
 
-export const getAnnouncements = async () => {
-  const { data, error } = await supabase
-    .from("announcements")
-    .select("*")
-    .order("created_at", { ascending: false });
+export const getAnnouncementsForUser = async (audience) => {
+  if (!["PARENT", "TEACHER"].includes(audience)) {
+    throw new Error("Rôle utilisateur invalide.");
+  }
 
-  if (error) throw error;
-
-  return data || [];
-};
-
-// ======================================
-// Créer et publier une annonce
-// ======================================
-
-export const createAnnouncement = async ({
-  title,
-  message,
-  category,
-  audience,
-  isImportant,
-}) => {
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
   if (userError) throw userError;
+  if (!user) throw new Error("Utilisateur non connecté.");
 
-  if (!user) {
-    throw new Error("Utilisateur non connecté.");
+  // Récupérer uniquement les annonces publiées
+  // destinées à cet utilisateur ou à tout le monde.
+
+  const { data: announcements, error } = await supabase
+    .from("announcements")
+    .select("*")
+    .eq("is_published", true)
+    .or(`audience.eq.ALL,audience.eq.${audience}`)
+    .order("published_at", { ascending: false });
+
+  if (error) throw error;
+
+  if (!announcements?.length) {
+    return [];
   }
 
-  const { data, error } = await supabase
-    .from("announcements")
-    .insert({
-      title: title.trim(),
-      message: message.trim(),
-      category,
-      audience,
-      is_important: isImportant,
-      is_published: true,
-      created_by: user.id,
-      published_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+  // Récupérer les annonces déjà consultées
+  const { data: reads, error: readsError } = await supabase
+    .from("announcement_reads")
+    .select("announcement_id")
+    .eq("user_id", user.id);
 
-  if (error) throw error;
+  if (readsError) throw readsError;
 
-  return data;
+  const readIds = new Set(
+    (reads || []).map((item) => item.announcement_id)
+  );
+
+  return announcements.map((item) => ({
+    ...item,
+    isRead: readIds.has(item.id),
+  }));
 };
 
 // ======================================
-// Modifier une annonce
+// Marquer une annonce comme consultée
 // ======================================
 
-export const updateAnnouncement = async (id, updates) => {
-  const { data, error } = await supabase
-    .from("announcements")
-    .update({
-      title: updates.title.trim(),
-      message: updates.message.trim(),
-      category: updates.category,
-      audience: updates.audience,
-      is_important: updates.isImportant,
-    })
-    .eq("id", id)
-    .select()
-    .single();
+export const markAnnouncementAsRead = async (announcementId) => {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (error) throw error;
+  if (userError) throw userError;
+  if (!user) throw new Error("Utilisateur non connecté.");
 
-  return data;
-};
-
-// ======================================
-// Supprimer une annonce
-// ======================================
-
-export const deleteAnnouncement = async (id) => {
-  const { error } = await supabase.from("announcements").delete().eq("id", id);
+  const { error } = await supabase
+    .from("announcement_reads")
+    .upsert(
+      {
+        announcement_id: announcementId,
+        user_id: user.id,
+      },
+      {
+        onConflict: "announcement_id,user_id",
+        ignoreDuplicates: true,
+      }
+    );
 
   if (error) throw error;
 

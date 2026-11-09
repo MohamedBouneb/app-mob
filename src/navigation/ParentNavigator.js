@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
-
+import AnnouncementsScreen from "../screens/shared/AnnouncementsScreen";
 const Stack = createNativeStackNavigator();
 const { width } = Dimensions.get("window");
 
@@ -173,7 +173,7 @@ function AnnouncementRow({ item, onPress }) {
   );
 }
 
-function ParentHomeScreen() {
+function ParentHomeScreen({ navigation }) {
   const { user, logout } = useAuth();
 
   const parentName =
@@ -278,7 +278,7 @@ function ParentHomeScreen() {
             title="رسائل الروضة"
             subtitle="إعلانات ومعلومات"
             color={C.yellowLight}
-            onPress={() => showFeature("رسائل الروضة")}
+            onPress={() => navigation.navigate("ParentAnnouncements")}
           />
         </View>
 
@@ -354,12 +354,34 @@ function ParentHomeScreen() {
 
 export default function ParentNavigator() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      initialRouteName="ParentHome"
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+      }}
+    >
+      {/* Dashboard principal */}
+      <Stack.Screen name="ParentHome" component={ParentHomeScreen} />
+
+      {/* Annonces et messages de la الروضة */}
       <Stack.Screen
-        name="ParentHome"
-        component={ParentHomeScreen}
+        name="ParentAnnouncements"
+        component={AnnouncementsScreen}
+        initialParams={{ audience: "PARENT" }}
         options={{
-          headerShown: false,
+          headerShown: true,
+          title: "رسائل الروضة",
+          headerTitleAlign: "center",
+          headerBackTitle: "رجوع",
+          headerTintColor: C.primary,
+          headerStyle: {
+            backgroundColor: C.background,
+          },
+          headerTitleStyle: {
+            color: C.text,
+            fontWeight: "800",
+          },
         }}
       />
     </Stack.Navigator>
